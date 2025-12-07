@@ -41,7 +41,7 @@ local function saveConfig(name)
     -- Implement saving logic here if needed
 end
 
--- Draggable Function (CORREÇÃO DE CLIQUE/ARRASTO MANTIDA)
+-- Draggable Function (CORREÇÃO DE ARRASTO)
 local function Draggable(Window, Config)
     local dragging = false
     local dragInput
@@ -49,12 +49,15 @@ local function Draggable(Window, Config)
     local startPos
 
     Window.Titlebar.InputBegan:Connect(function(input)
-        -- Apenas inicia o arrasto se o clique/toque for na Titlebar
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and input.Target:IsDescendantOf(Window.Titlebar) then
-            dragging = true
-            dragStart = input.Position
-            startPos = Window.Frame.Position
-            dragInput = input
+        -- VERIFICAÇÃO CHAVE: Só inicia o arrasto se o clique for na Titlebar (e não em um botão dentro dela)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            -- Verifica se o target é a Titlebar ou um de seus elementos (mas no seu caso, só a Titlebar deve ser arrastável)
+            if input.Target == Window.Titlebar or input.Target:IsDescendantOf(Window.Titlebar) then
+                dragging = true
+                dragStart = input.Position
+                startPos = Window.Frame.Position
+                dragInput = input
+            end
         end
     end)
 
@@ -80,12 +83,12 @@ local function Draggable(Window, Config)
 end
 -- End Draggable Function
 
--- Notification System (CORREÇÃO: Garantindo o Reposicionamento e Animação suaves)
+-- Notification System (CORREÇÃO DE ANIMAÇÃO E REPOSICIONAMENTO)
 local function MakeNotification(data)
     local notification = Instance.new("Frame")
     notification.Size = UDim2.new(0, 250, 0, 50)
     notification.AnchorPoint = Vector2.new(1, 1)
-    notification.Position = UDim2.new(1, 260, 1, -10) -- Inicia fora da tela
+    notification.Position = UDim2.new(1, 260, 1, -10) -- Inicia fora da tela para animar a entrada
     notification.BackgroundTransparency = 0
     notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     notification.BorderSizePixel = 0
@@ -134,19 +137,22 @@ local function MakeNotification(data)
     
     local function repositionNotifications()
         local yOffset = 0
+        -- Percorre de trás para frente para manter a ordem de empilhamento visual
         for i, notif in ipairs(notifications) do
             local targetY = ScreenGui.AbsoluteSize.Y - 10 - yOffset - notif.AbsoluteSize.Y
+            -- Usa Tween para animação suave
             TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(1, -10, 0, targetY)}):Play()
             yOffset = yOffset + notif.AbsoluteSize.Y + 10
         end
     end
 
-    -- Inicializa o posicionamento
+    -- Chamada inicial para animar a entrada
     repositionNotifications()
     
     -- Timeout e Destruição
     local timeToWait = data.Time or 5
     delay(timeToWait, function()
+        -- Animação de saída para a direita
         TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(1, 260, notification.Position.Y.Scale, notification.Position.Y.Offset)}):Play()
         delay(0.3, function()
             local index = table.find(notifications, notification)
@@ -154,7 +160,7 @@ local function MakeNotification(data)
                 table.remove(notifications, index)
             end
             notification:Destroy()
-            repositionNotifications() -- Reposiciona após remover
+            repositionNotifications() -- Reposiciona as restantes
         end)
     end)
 end
@@ -173,7 +179,7 @@ local function MakeWindow(data)
         ConfigFolder = data.ConfigFolder,
         IntroEnabled = data.IntroEnabled or false,
         DefaultPosition = data.DefaultPosition or UDim2.new(0.5, -250, 0.5, -200),
-        DefaultSize = UDim2.new(0, 500, 0, 400) -- Adicionado para controle de minimização
+        DefaultSize = UDim2.new(0, 500, 0, 400) -- Definido o tamanho padrão para a minimização
     }
 
     if Config.SaveConfig then
@@ -229,8 +235,7 @@ local function MakeWindow(data)
     CloseButton.Parent = Titlebar
     
     CloseButton.MouseButton1Click:Connect(function()
-        -- Lógica de fechar/destruir a GUI (o "X" fecha completamente)
-        ScreenGui:Destroy()
+        ScreenGui:Destroy() -- O 'X' fecha a GUI completamente
     end)
     
     local MinimizeButton = Instance.new("TextButton")
@@ -246,8 +251,6 @@ local function MakeWindow(data)
     MinimizeButton.TextSize = 18
     MinimizeButton.Parent = Titlebar
     
-    -- CORREÇÃO: Lógica de Minimizar/Maximizar Suave
-    local minimized = false
     local TabContainer = Instance.new("Frame")
     TabContainer.Size = UDim2.new(0.2, 0, 1, -30)
     TabContainer.Position = UDim2.new(0, 0, 0, 30)
@@ -266,14 +269,17 @@ local function MakeWindow(data)
     ContentContainer.Name = "ContentContainer"
     ContentContainer.Parent = mainFrame
     
+    -- CORREÇÃO: Lógica de Minimizar/Maximizar Suave
+    local minimized = false
     MinimizeButton.MouseButton1Click:Connect(function()
         minimized = not minimized
         if minimized then
             -- Minimiza: Reduz o tamanho da janela para apenas a Titlebar
             TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(Config.DefaultSize.X.Scale, Config.DefaultSize.X.Offset, 0, 30)}):Play()
+            -- Oculta os conteúdos internos
             TabContainer.Visible = false
             ContentContainer.Visible = false
-            MinimizeButton.Text = "☐" 
+            MinimizeButton.Text = "☐" -- Símbolo de maximizar
         else
             -- Maximiza: Retorna ao tamanho original
             TabContainer.Visible = true
