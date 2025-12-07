@@ -38,11 +38,14 @@ Error code: " .. Response .. "\n")
 end	
 
 local function GetIcon(IconName)
-	if Icons[IconName] ~= nil then
-		return Icons[IconName]
-	else
-		return nil
-	end
+    -- CORREÇÃO: Adicionando pcall para evitar quebras se a tabela Icons não for carregada
+    local result = nil
+    pcall(function()
+        if Icons and Icons[IconName] ~= nil then
+            result = Icons[IconName]
+        end
+    end)
+    return result
 end   
 
 local Orion = Instance.new("ScreenGui")
@@ -62,18 +65,23 @@ nextb.Active = true
 nextb.Draggable = true
 
 -- CORREÇÃO: Usando InputBegan e verificando UserInputType para garantir clique de PC
-AddConnection(nextb.InputBegan, function(Input)
+local function MinimizeButtonHandler(Input)
     if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-        nextb.Image = (Orion.Frame1.Visible and "rbxassetid://7072720870") or "rbxassetid://7072719338"
-        Orion.Frame1.Visible = not Orion.Frame1.Visible
+        -- Certifica-se que Orion.Frame1 existe antes de tentar acessá-lo
+        local mainWindow = Orion:FindFirstChild("Frame1")
+        if mainWindow and mainWindow:IsA("Frame") then
+            nextb.Image = (mainWindow.Visible and "rbxassetid://7072720870") or "rbxassetid://7072719338"
+            mainWindow.Visible = not mainWindow.Visible
+        end
     end
-end)
+end
+AddConnection(nextb.InputBegan, MinimizeButtonHandler)
 
-if syn then
-	syn.protect_gui(Orion)
-	Orion.Parent = game.CoreGui
+-- CORREÇÃO: Removida a proteção de GUI para melhor compatibilidade inicial
+if gethui then
+	Orion.Parent = gethui()
 else
-	Orion.Parent = gethui() or game.CoreGui
+	Orion.Parent = game.CoreGui
 end
 
 if gethui then
@@ -108,9 +116,9 @@ local function AddConnection(Signal, Function)
 	return SignalConnect
 end
 
+-- CORREÇÃO: Usando task.spawn para não bloquear o thread
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		-- CORREÇÃO: Usando task.wait() em vez de wait()
 		task.wait()
 	end
 
@@ -241,7 +249,7 @@ local function LoadCfg(Config)
 	local Data = HttpService:JSONDecode(Config)
 	table.foreach(Data, function(a,b)
 		if OrionLib.Flags[a] then
-			spawn(function() 
+			task.spawn(function() -- CORREÇÃO: Usando task.spawn
 				if OrionLib.Flags[a].Type == "Colorpicker" then
 					OrionLib.Flags[a]:Set(UnpackColor(b))
 				else
@@ -266,7 +274,9 @@ function SaveCfg(Name)
 			end
 		end	
 	end
-	writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+	pcall(function()
+		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+	end)
 end
 
 local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2,Enum.UserInputType.MouseButton3}
@@ -416,7 +426,7 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 })
 
 function OrionLib:MakeNotification(NotificationConfig)
-	spawn(function()
+	task.spawn(function() -- CORREÇÃO: Usando task.spawn
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = 
 NotificationConfig.Content or "Test"
@@ -463,18 +473,17 @@ NotificationConfig.Content or "Test"
 
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
-		-- CORREÇÃO: Usando task.wait() em vez de wait()
 		task.wait(NotificationConfig.Time - 0.88)
 		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
-		task.wait(0.3) -- CORREÇÃO: Usando task.wait() em vez de wait()
+		task.wait(0.3)
 		TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
 		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
 		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
-		task.wait(0.05) -- CORREÇÃO: Usando task.wait() em vez de wait()
+		task.wait(0.05)
 
 		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
-		task.wait(1.35) -- CORREÇÃO: Usando task.wait() em vez de wait()
+		task.wait(1.35)
 		NotificationFrame:Destroy()
 	end)
 end
@@ -669,7 +678,7 @@ UDim2.new(0, 18, 0, 18),
             if Minimized then
                 TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 615, 0, 344)}):Play()
                 MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
-                task.wait(.02) -- CORREÇÃO: Usando task.wait()
+                task.wait(.02)
                 MainWindow.ClipsDescendants = false
                 WindowStuff.Visible = true
                 WindowTopBarLine.Visible = true
@@ -679,7 +688,7 @@ UDim2.new(0, 18, 0, 18),
                 MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
     
                 TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, WindowName.TextBounds.X + 140, 0, 50)}):Play()
-                task.wait(0.1) -- CORREÇÃO: Usando task.wait()
+                task.wait(0.1)
                 WindowStuff.Visible = false	
             end
             Minimized = not Minimized
@@ -689,8 +698,10 @@ UDim2.new(0, 18, 0, 18),
 	-- CORREÇÃO: Usando InputEnded e verificando UserInputType para garantir clique de PC
 	AddConnection(CloseBtn.InputEnded, function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and Input.UserInputState == Enum.UserInputState.End then
-            OrionLib:MakeNotification({Name = "SCRIPT FECHADO",Content = "Mesmo ao fechar, Continua Executado" ,Image = "rbxassetid://",Time = 7})task.wait(1)
+            OrionLib:MakeNotification({Name = "SCRIPT FECHADO",Content = "Mesmo ao fechar, Continua Executado" ,Image = "rbxassetid://",Time = 7})
+            task.wait(1)
             Orion:Destroy()
+            if WindowConfig.CloseCallback then WindowConfig.CloseCallback() end -- Chamando callback
         end
 	end)
 
@@ -717,19 +728,22 @@ UDim2.new(0, 18, 0, 18),
 		})
 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-		task.wait(0.8) -- CORREÇÃO: Usando task.wait()
+		task.wait(0.8)
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
-		task.wait(0.3) -- CORREÇÃO: Usando task.wait()
+		task.wait(0.3)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		task.wait(2) -- CORREÇÃO: Usando task.wait()
+		task.wait(2)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
 		MainWindow.Visible = true
 		LoadSequenceLogo:Destroy()
 		LoadSequenceText:Destroy()
 	end 
 
+	-- CORREÇÃO: Usando task.spawn para a sequência de carregamento para não bloquear
 	if WindowConfig.IntroEnabled then
-		LoadSequence()
+		task.spawn(LoadSequence)
+	else
+		MainWindow.Visible = true
 	end	
 
 	local TabFunction = {}
@@ -1072,19 +1086,21 @@ UDim2.new(1, -30, 0, 7),
 					SliderBar 
 				}), "Second")
 
-				SliderBar.InputBegan:Connect(function(Input) 
+                -- CORREÇÃO: Usando InputBegan e InputEnded no SliderBar para detectar o arraste
+				AddConnection(SliderBar.InputBegan, function(Input) 
 					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
 						Dragging = true 
 					end 
 				end)
 
-				SliderBar.InputEnded:Connect(function(Input) 
+				AddConnection(SliderBar.InputEnded, function(Input) 
 					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
 						Dragging = false 
 					end 
 				end)
 
-				UserInputService.InputChanged:Connect(function(Input)
+                -- CORREÇÃO: Usando InputChanged no UserInputService para arrastar
+				AddConnection(UserInputService.InputChanged, function(Input)
 					if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then
 						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
 						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale))
@@ -1129,14 +1145,14 @@ UDim2.new(1, -30, 0, 7),
 					})
 				})
 
-				local DropdownContainer = SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4), {
+				local DropdownContainer = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4), {
 					Size = UDim2.new(1, 0, 0, 0),
 					Position = UDim2.new(0, 0, 1, 1),
 					CanvasSize = UDim2.new(0, 0, 0, 0),
 					Name = "Options"
 				}), {
 					DropdownList
-				})
+				}), "Second") -- CORREÇÃO: Faltava AddThemeObject no DropdownContainer
 
 				local DropdownFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
@@ -1178,7 +1194,7 @@ UDim2.new(1, -30, 0, 7),
 								Name = "Title" 
 							}), "Text") 
 						}), { 
-							Parent = DropdownContainer, 
+							Parent = DropdownList, -- CORREÇÃO: Parent deve ser DropdownList
 							Size = UDim2.new(1, 0, 0, 28), 
 							BackgroundTransparency = 1, 
 							ClipsDescendants = true 
@@ -1238,7 +1254,8 @@ _,v in pairs(Dropdown.Buttons) do
 
                         if Dropdown.Toggled then
                             DropdownFrame.F.Ico.Image = "rbxassetid://7072706796"
-                            TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.new(1, 0, 0, DropdownContainer.UIListLayout.AbsoluteContentSize.Y + 40)}):Play()
+                            -- Usando a propriedade correta AbsoluteContentSize.Y do DropdownList
+                            TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.new(1, 0, 0, DropdownList.AbsoluteContentSize.Y + 40)}):Play()
                             TweenService:Create(DropdownFrame.F.Ico,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Rotation = 180}):Play()
                         else
                             TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.new(1, 0, 0, 38)}):Play()
@@ -1306,7 +1323,7 @@ _,v in pairs(Dropdown.Buttons) do
 					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
 						if Bind.Binding then return end 
 						Bind.Binding = true 
-						BindBox.Value.Text = "" 
+						BindBox.Value.Text = "..." 
 					end 
 				end)
 
@@ -1403,7 +1420,7 @@ _,v in pairs(Dropdown.Buttons) do
 					TextContainer 
 				}), "Second")
 
-				AddConnection(TextboxActual.Text:GetPropertyChangedSignal("Text"), function()
+				AddConnection(TextboxActual:GetPropertyChangedSignal("Text"), function()
 					TextboxConfig.Callback(TextboxActual.Text)
 					SaveCfg(game.GameId)
 				end)
@@ -1414,6 +1431,7 @@ _,v in pairs(Dropdown.Buttons) do
 					end
 				end)
 
+				local Textbox = {}
 				function Textbox:Set(Value)
 					TextboxActual.Text = Value
 					if TextboxConfig.TextDisappear and TextboxActual.Text == "" then
