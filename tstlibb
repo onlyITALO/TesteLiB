@@ -61,7 +61,6 @@ nextb.Active = true
 nextb.Draggable = true
 
 nextb.MouseButton1Down:connect(function()
-  -- CORREÇÃO DE LOGICA EXTERNA DO MINIMIZAR (Não aplicada na função MakeWindow, mas mantida)
   nextb.Image = (Orion.Frame1.Visible and "rbxassetid://7072720870") or "rbxassetid://7072719338"
   Orion.Frame1.Visible = not Orion.Frame1.Visible
 end)
@@ -106,7 +105,7 @@ end
 
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		task.wait()
+		task.wait() -- Usando task.wait() para consistência
 	end
 
 	for _, Connection in next, OrionLib.Connections do
@@ -114,12 +113,12 @@ task.spawn(function()
 	end
 end)
 
--- CORREÇÃO CHAVE: Draggable Logic para evitar conflito com botões
 local function MakeDraggable(DragPoint, Main)
 	pcall(function()
 		local Dragging, DragInput, MousePos, FramePos = false
 		AddConnection(DragPoint.InputBegan, function(Input)
-			if Input.UserInputType == Enum.UserInputType.MouseButton1 and Input.Target == DragPoint then -- Garante que o input venha APENAS do DragPoint
+			-- CORREÇÃO: Verifica se o Input.Target é o DragPoint para evitar conflito com botões
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 and Input.Target == DragPoint then
 				Dragging = true
 				MousePos = Input.Position
 				FramePos = Main.Position
@@ -139,6 +138,7 @@ local function MakeDraggable(DragPoint, Main)
 		AddConnection(UserInputService.InputChanged, function(Input)
 			if Input == DragInput and Dragging then
 				local Delta = Input.Position - MousePos
+				--TweenService:Create(Main, TweenInfo.new(0.05, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)}):Play()
 				Main.Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
 			end
 		end)
@@ -234,7 +234,7 @@ local function LoadCfg(Config)
 	local Data = HttpService:JSONDecode(Config)
 	table.foreach(Data, function(a,b)
 		if OrionLib.Flags[a] then
-			task.spawn(function() 
+			task.spawn(function()  -- Usando task.spawn()
 				if OrionLib.Flags[a].Type == "Colorpicker" then
 					OrionLib.Flags[a]:Set(UnpackColor(b))
 				else
@@ -407,11 +407,11 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 })
 
 function OrionLib:MakeNotification(NotificationConfig)
-	task.spawn(function()
+	task.spawn(function() -- Usando task.spawn()
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = NotificationConfig.Content or "Test"
 		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://4384403532"
-		NotificationConfig.Time = NotificationConfig.Time or 7 -- Reduzido para testar
+		NotificationConfig.Time = NotificationConfig.Time or 15
 
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 0),
@@ -422,7 +422,8 @@ function OrionLib:MakeNotification(NotificationConfig)
 		local NotificationFrame = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
 			Parent = NotificationParent, 
 			Size = UDim2.new(1, 0, 0, 0),
-			Position = UDim2.new(1, 0, 0, 0), -- Posição de entrada (ajustada para animar de fora)
+			-- Posição inicial fora da tela (para animar a entrada)
+			Position = UDim2.new(1.1, 0, 0, 0), 
 			BackgroundTransparency = 0,
 			AutomaticSize = Enum.AutomaticSize.Y
 		}), {
@@ -449,21 +450,20 @@ function OrionLib:MakeNotification(NotificationConfig)
 				TextWrapped = true
 			})
 		})
-		
-		-- Fixa o tamanho inicial (gambiarra para o AutomaticSize)
+
+		-- Fixa o tamanho do pai para o UIListLayout
 		NotificationParent.Size = UDim2.new(1, 0, 0, NotificationFrame.AbsoluteSize.Y)
 		
-		-- Animação de entrada (da direita para o centro)
-		NotificationFrame.Position = UDim2.new(1.1, 0, 0, 0)
-		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-		
-		task.wait(NotificationConfig.Time - 1.5)
+		-- Animação de entrada
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
-		-- Animação de saída para a direita
-		local ExitTween = TweenService:Create(NotificationFrame, TweenInfo.new(1, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.1, 0, 0, 0)})
+		task.wait(NotificationConfig.Time - 1.5) -- Tempo ajustado para a animação de saída
+
+		-- Animação de saída (para a direita)
+		local ExitTween = TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(1.1, 0, 0, 0)})
 		ExitTween:Play()
 		
-		-- Destruir após o tween de saída
+		-- Destrói após o tween de saída
 		ExitTween.Completed:Wait()
 		NotificationParent:Destroy()
 	end)
@@ -536,7 +536,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local DragPoint = SetProps(MakeElement("TFrame"), {
 		Size = UDim2.new(1, 0, 0, 50),
-		ZIndex = 2 -- Garante que o DragPoint esteja acima dos botões (para a lógica MakeDraggable)
+		ZIndex = 2 -- Garante que o DragPoint esteja acima dos botões
 	})
 
 	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
@@ -669,12 +669,11 @@ function OrionLib:MakeWindow(WindowConfig)
 			WindowTopBarLine.Visible = false
 			WindowStuff.Visible = false
 			
-			-- Calcula o tamanho minimizado: largura da TitleBar + margem + botões (Aproximadamente o tamanho do texto + 100)
-			local MinimizedWidth = WindowName.TextBounds.X + 100 -- Largura do texto + espaço dos botões
+			-- Calcula a largura minimizada para conter o título
+			local MinimizedWidth = WindowName.TextBounds.X + 100 
 			
 			TweenService:Create(MainWindow, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, MinimizedWidth, 0, 50)}):Play()
 			
-			-- Necessário para que o conteúdo não seja visível durante a minimização
 			task.wait(0.3) 
 			MainWindow.ClipsDescendants = true 
 		end
@@ -682,7 +681,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	end)
 	
 	AddConnection(CloseBtn.MouseButton1Up, function()
-	  OrionLib:MakeNotification({Name = "SCRIPT FECHADO",Content = "Mesmo ao fechar, Continua Executado" ,Image = "rbxassetid://7072725342",Time = 7})
+	  OrionLib:MakeNotification({Name = "SCRIPT FECHADO",Content = "Mesmo ao fechar, Continua Executado" ,Image = "rbxassetid://7072725342",Time = 7}) -- Usando ImageID de exemplo
 	  task.wait(0.5)
 	  Orion:Destroy()
 	end)
@@ -898,7 +897,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(Click.MouseButton1Up, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					task.spawn(function()
+					task.spawn(function() -- Usando task.spawn()
 						ButtonConfig.Callback()
 					end)
 				end)
@@ -969,8 +968,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
 					ToggleConfig.Callback(Toggle.Value)
 				end    
-				
-				-- Resto da função (não alterado)
+
 				if ToggleConfig.Flag then
 					OrionLib.Flags[ToggleConfig.Flag] = Toggle
 					OrionLib.Flags[ToggleConfig.Flag].Type = "Toggle"
@@ -999,15 +997,26 @@ function OrionLib:MakeWindow(WindowConfig)
 				return Toggle
 			end
 
-			-- Resto das funções (não alteradas)
-
-		end
+			-- Omitidas as outras funções de elemento para manter a resposta concisa, assumindo que você manterá a estrutura:
+			
+			-- function ElementFunction:AddSlider() ... end
+			-- function ElementFunction:AddTextbox() ... end
+			-- function ElementFunction:AddDropdown() ... end
+			-- ... (o resto da sua biblioteca)
+			
 		
-		-- Retorna a função GetElements (que estava faltando no seu trecho)
-		return GetElements(Container)
+		return ElementFunction -- Retornando a ElementFunction aqui
+		end
+
+		return {
+			AddLabel = function(...) return GetElements(Container):AddLabel(...) end,
+			AddParagraph = function(...) return GetElements(Container):AddParagraph(...) end,
+			AddButton = function(...) return GetElements(Container):AddButton(...) end,
+			AddToggle = function(...) return GetElements(Container):AddToggle(...) end,
+			-- ... (o resto dos elementos do GetElements)
+		}
 	end
 	
-	-- Retorna a função MakeTab
 	return TabFunction
 end
 
