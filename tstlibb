@@ -87,17 +87,16 @@ else
 end
 
 function OrionLib:IsRunning()
+	-- Corrigido para verificar a existência do Orion na CoreGui ou gethui()
 	if gethui then
-		return Orion.Parent == gethui()
+		return Orion.Parent == gethui() or Orion.Parent == game.CoreGui
 	else
 		return Orion.Parent == game:GetService("CoreGui")
 	end
 end
 
 local function AddConnection(Signal, Function)
-	if (not OrionLib:IsRunning()) then
-		return
-	end
+	-- Removido a verificação de IsRunning aqui para evitar problemas de inicialização
 	local SignalConnect = Signal:Connect(Function)
 	table.insert(OrionLib.Connections, SignalConnect)
 	return SignalConnect
@@ -105,7 +104,7 @@ end
 
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		wait()
+		task.wait() -- Usando task.wait() para melhor performance
 	end
 
 	for _, Connection in next, OrionLib.Connections do
@@ -114,44 +113,46 @@ task.spawn(function()
 end)
 
 -- *********************************************************************************
--- FUNÇÃO MakeDraggable CORRIGIDA E REVISADA
+-- FUNÇÃO MakeDraggable CORRIGIDA E REVISADA PARA MOUSE E TOUCH
 -- *********************************************************************************
 local function MakeDraggable(DragPoint, Main)
 	pcall(function()
 		local isDragging = false
 		local dragStartPos = nil
 		local frameStartPos = nil
-		local moveConnection = nil -- Conexão para o movimento (temporária)
-		local endConnection = nil  -- Conexão para o fim do arrasto (temporária)
+		local moveConnection = nil 
+		local endConnection = nil 
         
+		local function stopDrag()
+			isDragging = false
+			if moveConnection then moveConnection:Disconnect() end
+			if endConnection then endConnection:Disconnect() end
+			moveConnection = nil
+			endConnection = nil
+		end
+
 		local function startDrag(input)
-			-- Só começa a arrastar se for MouseButton1 (PC) ou Touch (Mobile)
 			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+				-- Se já estiver arrastando (o que não deve acontecer), pare e recomece
+                if isDragging then stopDrag() end 
+                
 				isDragging = true
 				dragStartPos = input.Position
 				frameStartPos = Main.Position
                 
-                -- Limpa qualquer conexão anterior para garantir que não haja duplicação
-                if moveConnection then moveConnection:Disconnect() end
-                if endConnection then endConnection:Disconnect() end
-                
                 -- Conexão para rastrear o movimento enquanto o botão/toque está pressionado
 				moveConnection = AddConnection(UserInputService.InputChanged, function(inputChanged)
-					-- Verifica se o input de movimento é o mesmo que iniciou o arrasto
+					-- Verifica se o input de movimento é do mouse ou toque
 					if isDragging and (inputChanged.UserInputType == Enum.UserInputType.MouseMovement or inputChanged.UserInputType == Enum.UserInputType.Touch) then
 						local Delta = inputChanged.Position - dragStartPos
 						Main.Position  = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + Delta.X, frameStartPos.Y.Scale, frameStartPos.Y.Offset + Delta.Y)
 					end
 				end)
                 
-                -- Conexão para parar o arrasto
+                -- Conexão para parar o arrasto (InputEnded do UserInputService)
 				endConnection = AddConnection(UserInputService.InputEnded, function(inputEnded)
 					if inputEnded.UserInputType == Enum.UserInputType.MouseButton1 or inputEnded.UserInputType == Enum.UserInputType.Touch then
-						isDragging = false
-						if moveConnection then moveConnection:Disconnect() end
-						if endConnection then endConnection:Disconnect() end
-						moveConnection = nil
-						endConnection = nil
+						stopDrag()
 					end
 				end)
 			end
@@ -160,9 +161,6 @@ local function MakeDraggable(DragPoint, Main)
 		AddConnection(DragPoint.InputBegan, startDrag)
 	end)
 end
--- *********************************************************************************
--- FIM DA CORREÇÃO
--- *********************************************************************************
 -- *********************************************************************************
 -- FIM DA CORREÇÃO
 -- *********************************************************************************
@@ -473,17 +471,17 @@ function OrionLib:MakeNotification(NotificationConfig)
 
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
-		wait(NotificationConfig.Time - 0.88)
+		task.wait(NotificationConfig.Time - 0.88)
 		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
-		wait(0.3)
+		task.wait(0.3)
 		TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
 		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
 		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
-		wait(0.05)
+		task.wait(0.05)
 
 		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
-		wait(1.35)
+		task.wait(1.35)
 		NotificationFrame:Destroy()
 	end)
 end
@@ -625,7 +623,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		Position = UDim2.new(0, 0, 1, -1),
 	}), "Stroke")
 
-	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(0, 0, 0), 0, 10), {
 	  Name = "Frame1",
 		Parent = Orion,
 		Position = UDim2.new(0.5, -307, 0.5, -172),
@@ -671,7 +669,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		if Minimized then
 			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 615, 0, 344)}):Play()
 			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
-			wait(.02)
+			task.wait(.02)
 			MainWindow.ClipsDescendants = false
 			WindowStuff.Visible = true
 			WindowTopBarLine.Visible = true
@@ -681,7 +679,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
 
 			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, WindowName.TextBounds.X + 140, 0, 50)}):Play()
-			wait(0.1)
+			task.wait(0.1)
 			WindowStuff.Visible = false	
 		end
 		Minimized = not Minimized    
@@ -714,11 +712,11 @@ function OrionLib:MakeWindow(WindowConfig)
 		})
 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-		wait(0.8)
+		task.wait(0.8)
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
-		wait(0.3)
+		task.wait(0.3)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		wait(2)
+		task.wait(2)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
 		MainWindow.Visible = true
 		LoadSequenceLogo:Destroy()
