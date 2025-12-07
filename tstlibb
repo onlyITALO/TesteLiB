@@ -1,167 +1,172 @@
--- ROBLUE UI LIBRARY
--- Orion / ITALO Compatible
--- PC (Xeno) + Mobile OK
-
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
 
-local Roblue = {}
+local OrionLib = {
+    Elements = {},
+    ThemeObjects = {},
+    Connections = {},
+    Flags = {},
+    Themes = {
+        Default = {
+            Main = Color3.fromRGB(0,0,0),
+            Second = Color3.fromRGB(10,10,10),
+            Stroke = Color3.fromRGB(0,170,255),
+            Divider = Color3.fromRGB(60,60,60),
+            Text = Color3.fromRGB(240,240,240),
+            TextDark = Color3.fromRGB(150,150,150)
+        }
+    },
+    SelectedTheme = "Default",
+    Folder = nil,
+    SaveCfg = false
+}
 
--- ======================
--- NOTIFICATION (stub)
--- ======================
-function Roblue:MakeNotification(cfg)
-	cfg = cfg or {}
-	warn("[ROBLUE]", cfg.Name or "", cfg.Content or "")
+-- Feather Icons
+local Icons = {}
+pcall(function()
+    Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
+end)
+local function GetIcon(IconName) return Icons[IconName] or nil end
+
+-- GUI Setup
+local Orion = Instance.new("ScreenGui")
+local guiRH = Instance.new("ScreenGui", Orion)
+local nextb = Instance.new("ImageButton", guiRH)
+local gui = Instance.new("UICorner", nextb)
+
+Orion.Name = "ITALO CLIENT"
+guiRH.Name = "Minimize"
+
+nextb.Position = UDim2.new(0,100,0,60)
+nextb.Size = UDim2.new(0,40,0,40)
+nextb.BackgroundColor3 = Color3.fromRGB(25,25,25)
+nextb.Image = "rbxassetid://7072720870"
+nextb.Visible = false
+nextb.Active = true
+nextb.Draggable = true
+
+-- Corrigido para PC e celular
+nextb.Activated:Connect(function()
+    if Orion.Frame1 then
+        Orion.Frame1.Visible = not Orion.Frame1.Visible
+        nextb.Image = Orion.Frame1.Visible and "rbxassetid://7072720870" or "rbxassetid://7072719338"
+    end
+end)
+
+-- Função genérica para botões
+local function ConnectButton(Button, Callback)
+    if Button then
+        Button.Active = true
+        Button.Activated:Connect(Callback)
+    end
 end
 
--- ======================
--- WINDOW
--- ======================
-function Roblue:MakeWindow(cfg)
-	cfg = cfg or {}
-
-	repeat task.wait() until LocalPlayer:FindFirstChild("PlayerGui")
-
-	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = "ROBLUE_GUI"
-	ScreenGui.Parent = LocalPlayer.PlayerGui
-	ScreenGui.ResetOnSpawn = false
-	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-	local Main = Instance.new("Frame", ScreenGui)
-	Main.Size = UDim2.fromOffset(720, 460)
-	Main.Position = UDim2.fromScale(0.5, 0.5)
-	Main.AnchorPoint = Vector2.new(0.5, 0.5)
-	Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-	Main.Active = true
-	Main.Draggable = true
-	Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 14)
-
-	-- TOP BAR
-	local Top = Instance.new("TextLabel", Main)
-	Top.Size = UDim2.new(1,0,0,40)
-	Top.BackgroundColor3 = Color3.fromRGB(25,25,25)
-	Top.Text = cfg.Name or "ROBLUE"
-	Top.TextColor3 = Color3.new(1,1,1)
-	Top.Font = Enum.Font.GothamBold
-	Top.TextSize = 16
-
-	-- SIDEBAR
-	local Sidebar = Instance.new("Frame", Main)
-	Sidebar.Position = UDim2.new(0,0,0,40)
-	Sidebar.Size = UDim2.new(0,150,1,-40)
-	Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,22)
-
-	local SideLayout = Instance.new("UIListLayout", Sidebar)
-	SideLayout.Padding = UDim.new(0,6)
-	SideLayout.HorizontalAlignment = Center
-
-	-- CONTENT
-	local Content = Instance.new("Frame", Main)
-	Content.Position = UDim2.new(0,150,0,40)
-	Content.Size = UDim2.new(1,-150,1,-40)
-	Content.BackgroundTransparency = 1
-
-	local Window = {}
-
-	-- ======================
-	-- TAB
-	-- ======================
-	function Window:MakeTab(tabCfg)
-		tabCfg = tabCfg or {}
-
-		local TabFrame = Instance.new("Frame", Content)
-		TabFrame.Size = UDim2.new(1,0,1,0)
-		TabFrame.BackgroundTransparency = 1
-		TabFrame.Visible = false
-
-		local Layout = Instance.new("UIListLayout", TabFrame)
-		Layout.Padding = UDim.new(0,10)
-
-		local TabButton = Instance.new("TextButton", Sidebar)
-		TabButton.Size = UDim2.new(1,-10,0,40)
-		TabButton.Text = tabCfg.Name or "Tab"
-		TabButton.Font = Enum.Font.Gotham
-		TabButton.TextSize = 14
-		TabButton.TextColor3 = Color3.new(1,1,1)
-		TabButton.BackgroundColor3 = Color3.fromRGB(35,35,35)
-		Instance.new("UICorner", TabButton)
-
-		-- FIRST TAB AUTO OPEN
-		if not Content:FindFirstChild("ACTIVE_TAB") then
-			TabFrame.Name = "ACTIVE_TAB"
-			TabFrame.Visible = true
-		end
-
-		TabButton.MouseButton1Click:Connect(function()
-			for _,v in ipairs(Content:GetChildren()) do
-				if v:IsA("Frame") then
-					v.Visible = false
-				end
-			end
-			TabFrame.Visible = true
-		end)
-
-		local Tab = {}
-
-		-- ======================
-		-- BUTTON
-		-- ======================
-		function Tab:AddButton(cfg)
-			local Btn = Instance.new("TextButton", TabFrame)
-			Btn.Size = UDim2.new(1,-10,0,40)
-			Btn.Text = cfg.Name or "Button"
-			Btn.Font = Enum.Font.GothamBold
-			Btn.TextSize = 14
-			Btn.TextColor3 = Color3.new(1,1,1)
-			Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
-			Btn.Active = true
-			Btn.Selectable = true
-			Instance.new("UICorner", Btn)
-
-			Btn.MouseButton1Click:Connect(function()
-				if cfg.Callback then
-					pcall(cfg.Callback)
-				end
-			end)
-		end
-
-		-- ======================
-		-- PARAGRAPH
-		-- ======================
-		function Tab:AddParagraph(title, text)
-			local Holder = Instance.new("Frame", TabFrame)
-			Holder.Size = UDim2.new(1,-10,0,70)
-			Holder.BackgroundColor3 = Color3.fromRGB(45,45,45)
-			Instance.new("UICorner", Holder)
-
-			local Title = Instance.new("TextLabel", Holder)
-			Title.Size = UDim2.new(1,-10,0,30)
-			Title.Position = UDim2.new(0,5,0,5)
-			Title.BackgroundTransparency = 1
-			Title.Text = title or ""
-			Title.Font = Enum.Font.GothamBold
-			Title.TextSize = 14
-			Title.TextColor3 = Color3.new(1,1,1)
-			Title.TextXAlignment = Left
-
-			local Text = Instance.new("TextLabel", Holder)
-			Text.Size = UDim2.new(1,-10,0,30)
-			Text.Position = UDim2.new(0,5,0,35)
-			Text.BackgroundTransparency = 1
-			Text.TextWrapped = true
-			Text.Text = text or ""
-			Text.Font = Enum.Font.Gotham
-			Text.TextSize = 13
-			Text.TextColor3 = Color3.fromRGB(200,200,200)
-			Text.TextXAlignment = Left
-		end
-
-		return Tab
-	end
-
-	return Window
+-- Parent GUI corretamente
+if syn then
+    syn.protect_gui(Orion)
+    Orion.Parent = game.CoreGui
+else
+    Orion.Parent = gethui() or game.CoreGui
 end
 
-return Roblue
+-- Remove duplicados
+for _, Interface in ipairs(Orion.Parent:GetChildren()) do
+    if Interface.Name == Orion.Name and Interface ~= Orion then Interface:Destroy() end
+end
+
+-- Funções utilitárias
+function OrionLib:IsRunning()
+    return Orion.Parent == game:GetService("CoreGui") or (gethui and Orion.Parent == gethui())
+end
+
+local function AddConnection(Signal, Func)
+    if not OrionLib:IsRunning() then return end
+    local Connection = Signal:Connect(Func)
+    table.insert(OrionLib.Connections, Connection)
+    return Connection
+end
+
+task.spawn(function()
+    while OrionLib:IsRunning() do wait() end
+    for _, Connection in ipairs(OrionLib.Connections) do
+        Connection:Disconnect()
+    end
+end)
+
+local function MakeDraggable(DragPoint, Main)
+    local Dragging, DragInput, MousePos, FramePos = false
+    AddConnection(DragPoint.InputBegan, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = true
+            MousePos = Input.Position
+            FramePos = Main.Position
+            Input.Changed:Connect(function()
+                if Input.UserInputState == Enum.UserInputState.End then Dragging = false end
+            end)
+        end
+    end)
+    AddConnection(DragPoint.InputChanged, function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseMovement then
+            DragInput = Input
+        end
+    end)
+    AddConnection(UserInputService.InputChanged, function(Input)
+        if Input == DragInput and Dragging then
+            local Delta = Input.Position - MousePos
+            Main.Position = UDim2.new(FramePos.X.Scale, FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
+        end
+    end)
+end
+
+-- Funções para criação de elementos
+local function Create(Name, Properties, Children)
+    local Object = Instance.new(Name)
+    for i,v in pairs(Properties or {}) do Object[i] = v end
+    for i,v in pairs(Children or {}) do v.Parent = Object end
+    return Object
+end
+
+local function CreateElement(ElementName, ElementFunction)
+    OrionLib.Elements[ElementName] = function(...) return ElementFunction(...) end
+end
+
+local function MakeElement(ElementName, ...)
+    return OrionLib.Elements[ElementName](...)
+end
+
+local function SetProps(Element, Props)
+    for Property, Value in pairs(Props) do Element[Property] = Value end
+    return Element
+end
+
+local function SetChildren(Element, Children)
+    for _, Child in pairs(Children) do Child.Parent = Element end
+    return Element
+end
+
+-- Exemplo de elementos padrões
+CreateElement("Corner", function(Scale, Offset)
+    return Create("UICorner", {CornerRadius = UDim.new(Scale or 0, Offset or 10)})
+end)
+CreateElement("Stroke", function(Color, Thickness)
+    return Create("UIStroke", {Color = Color or Color3.fromRGB(255,255,255), Thickness = Thickness or 1})
+end)
+CreateElement("List", function(Scale, Offset)
+    return Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(Scale or 0, Offset or 0)})
+end)
+CreateElement("Padding", function(Bottom, Left, Right, Top)
+    return Create("UIPadding", {PaddingBottom=UDim.new(0,Bottom or 4), PaddingLeft=UDim.new(0,Left or 4), PaddingRight=UDim.new(0,Right or 4), PaddingTop=UDim.new(0,Top or 4)})
+end)
+CreateElement("TFrame", function()
+    return Create("Frame",{BackgroundTransparency=1})
+end)
+
+-- TODO: Adicionar todas as funções restantes da library original
+-- Certifique-se de trocar todos os eventos MouseButton1Down por Activated
+-- Adicionar Active = true para cada botão criado
+-- Preservar abas, sliders, cores, etc.
