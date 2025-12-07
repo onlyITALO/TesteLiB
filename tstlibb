@@ -114,41 +114,55 @@ task.spawn(function()
 end)
 
 -- *********************************************************************************
--- FUNÇÃO MakeDraggable CORRIGIDA PARA MOUSE (PC) E TOUCH (MOBILE)
+-- FUNÇÃO MakeDraggable CORRIGIDA E REVISADA
 -- *********************************************************************************
 local function MakeDraggable(DragPoint, Main)
 	pcall(function()
-		local Dragging, DragInput, MousePos, FramePos = false, nil, nil, nil
+		local isDragging = false
+		local dragStartPos = nil
+		local frameStartPos = nil
+		local moveConnection = nil -- Conexão para o movimento (temporária)
+		local endConnection = nil  -- Conexão para o fim do arrasto (temporária)
         
-		AddConnection(DragPoint.InputBegan, function(Input)
-			-- Permite MouseButton1 (PC) OU Touch (Mobile) para iniciar o arrasto
-			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then 
-				Dragging = true
-                DragInput = Input -- Armazena o objeto de input que começou o arrasto
-				MousePos = Input.Position
-				FramePos = Main.Position
-				
-				-- Monitora o fim do input para parar o arrasto
-				Input.Changed:Connect(function()
-					if Input.UserInputState == Enum.UserInputState.End then
-						Dragging = false
-                        DragInput = nil -- Libera o objeto de input
+		local function startDrag(input)
+			-- Só começa a arrastar se for MouseButton1 (PC) ou Touch (Mobile)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+				isDragging = true
+				dragStartPos = input.Position
+				frameStartPos = Main.Position
+                
+                -- Limpa qualquer conexão anterior para garantir que não haja duplicação
+                if moveConnection then moveConnection:Disconnect() end
+                if endConnection then endConnection:Disconnect() end
+                
+                -- Conexão para rastrear o movimento enquanto o botão/toque está pressionado
+				moveConnection = AddConnection(UserInputService.InputChanged, function(inputChanged)
+					-- Verifica se o input de movimento é o mesmo que iniciou o arrasto
+					if isDragging and (inputChanged.UserInputType == Enum.UserInputType.MouseMovement or inputChanged.UserInputType == Enum.UserInputType.Touch) then
+						local Delta = inputChanged.Position - dragStartPos
+						Main.Position  = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + Delta.X, frameStartPos.Y.Scale, frameStartPos.Y.Offset + Delta.Y)
+					end
+				end)
+                
+                -- Conexão para parar o arrasto
+				endConnection = AddConnection(UserInputService.InputEnded, function(inputEnded)
+					if inputEnded.UserInputType == Enum.UserInputType.MouseButton1 or inputEnded.UserInputType == Enum.UserInputType.Touch then
+						isDragging = false
+						if moveConnection then moveConnection:Disconnect() end
+						if endConnection then endConnection:Disconnect() end
+						moveConnection = nil
+						endConnection = nil
 					end
 				end)
 			end
-		end)
-		
-		-- Monitora o movimento tanto do mouse (PC) quanto do toque (Mobile)
-		AddConnection(UserInputService.InputChanged, function(Input)
-			-- Apenas se estivermos arrastando E o input atual for o que iniciou o arrasto
-			if Dragging and Input == DragInput then
-				local Delta = Input.Position - MousePos
-				-- Aplica a nova posição (mantendo o código original de movimento)
-				Main.Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
-			end
-		end)
+		end
+
+		AddConnection(DragPoint.InputBegan, startDrag)
 	end)
 end
+-- *********************************************************************************
+-- FIM DA CORREÇÃO
+-- *********************************************************************************
 -- *********************************************************************************
 -- FIM DA CORREÇÃO
 -- *********************************************************************************
