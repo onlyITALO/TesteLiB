@@ -536,7 +536,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local DragPoint = SetProps(MakeElement("TFrame"), {
 		Size = UDim2.new(1, 0, 0, 50),
-		ZIndex = 2 -- Garante que o DragPoint esteja acima dos botões
+		ZIndex = 2,
+		BackgroundTransparency = 1 -- Garantir que é totalmente transparente
 	})
 
 	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
@@ -620,7 +621,8 @@ function OrionLib:MakeWindow(WindowConfig)
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		ClipsDescendants = true,
 		Active = true,
-		Draggable = true
+		Draggable = true,
+		Visible = false -- Inicia invisível para o LoadSequence/Fade-in
 	}), {
 		SetChildren(SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 50),
@@ -721,6 +723,9 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	if WindowConfig.IntroEnabled then
 		LoadSequence()
+	else
+		-- CORREÇÃO PRINCIPAL: Se o Intro NÃO estiver ativado, a janela deve ser visível imediatamente.
+		MainWindow.Visible = true
 	end	
 
 	local TabFunction = {}
