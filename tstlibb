@@ -33,7 +33,7 @@ local Success, Response = pcall(function()
 end)
 
 if not Success then
-	-- CORREÇÃO APLICADA: Substituindo a quebra de linha bruta por '\n'
+	-- CORREÇÃO FINAL: Garantindo que a string esteja em uma única linha lógica, sem quebra de linha bruta.
 	warn("\nOrion Library - Failed to load Feather Icons.\nError code: " .. tostring(Response) .. "\n")
 end	
 
