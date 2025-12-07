@@ -28,16 +28,13 @@ local OrionLib = {
 --Feather Icons https://github.com/evoincorp/lucideblox/tree/master/src/modules/util - Created by 7kayoh
 local Icons = {}
 
--- [[ PATCH DE ESTABILIDADE CRÍTICA: Removendo chamada de rede para carregar ícones ]]
--- Mantido desativado para máxima estabilidade no carregamento.
+local Success, Response = pcall(function()
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
+end)
 
--- local Success, Response = pcall(function()
--- 	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
--- end)
-
--- if not Success then
--- 	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
--- end	
+if not Success then
+	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
+end	
 
 local function GetIcon(IconName)
 	if Icons[IconName] ~= nil then
@@ -47,14 +44,10 @@ local function GetIcon(IconName)
 	end
 end   
 
--- *********************************************************************************
--- CORREÇÃO CRÍTICA DE ESTRUTURA (RESOLVE FALHA DE INICIALIZAÇÃO)
--- ScreenGui não pode ser filho de ScreenGui.
 local Orion = Instance.new("ScreenGui")
-local guiRH = Instance.new("ScreenGui") -- AGORA CRIADO SEM PARENT
+local guiRH = Instance.new("ScreenGui")
 local nextb = Instance.new("ImageButton", guiRH)
 local gui = Instance.new("UICorner", nextb)
--- *********************************************************************************
 
 Orion.Name = "ITALO CLIENT <Orion Lib>"
 
@@ -76,18 +69,14 @@ nextb.MouseButton1Down:connect(function()
   end
 end)
 
--- *********************************************************************************
--- PATCH DE ESTABILIDADE CRÍTICA (Parenting correto para CoreGui)
--- *********************************************************************************
 if syn and syn.protect_gui then
 	pcall(syn.protect_gui, Orion) 
-	pcall(syn.protect_gui, guiRH) -- Protege o botão flutuante também
+	pcall(syn.protect_gui, guiRH)
 	Orion.Parent = game.CoreGui
-	guiRH.Parent = game.CoreGui -- AGORA AMBOS SÃO FILHOS DE CORE GUI
+	guiRH.Parent = game.CoreGui
 else
-	-- Força o parent para CoreGui
 	Orion.Parent = game.CoreGui 
-	guiRH.Parent = game.CoreGui -- AGORA AMBOS SÃO FILHOS DE CORE GUI
+	guiRH.Parent = game.CoreGui
 end
 
 -- Limpeza de GUIs antigas (usando CoreGui para estabilidade)
@@ -100,9 +89,6 @@ for _, Interface in ipairs(game.CoreGui:GetChildren()) do
         Interface:Destroy()
     end
 end
--- *********************************************************************************
--- FIM DO PATCH DE ESTABILIDADE
--- *********************************************************************************
 
 function OrionLib:IsRunning()
 	-- Corrigido para verificar a existência do Orion na CoreGui
@@ -128,6 +114,7 @@ end)
 
 -- *********************************************************************************
 -- FUNÇÃO MakeDraggable CORRIGIDA E REVISADA PARA MOUSE E TOUCH
+-- CORRIGE O ARRASTO NO PC, USANDO MOUSE.X/Y PARA MAIOR ESTABILIDADE EM EXECUTORES.
 -- *********************************************************************************
 local function MakeDraggable(DragPoint, Main)
 	pcall(function()
@@ -146,24 +133,47 @@ local function MakeDraggable(DragPoint, Main)
 		end
 
 		local function startDrag(input)
+			-- Garante que só iniciamos o arrasto com o botão esquerdo do mouse ou toque.
 			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
 				-- Se já estiver arrastando (o que não deve acontecer), pare e recomece
                 if isDragging then stopDrag() end 
                 
 				isDragging = true
-				dragStartPos = input.Position
+				
+				-- Captura a posição inicial ABSOLUTA (na tela) para calcular o Delta.
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					-- Para PC, usar Mouse.X/Y é mais robusto que input.Position, pois evita problemas de coordenação.
+					dragStartPos = Vector2.new(Mouse.X, Mouse.Y)
+				else 
+					-- Para Touch, input.Position é geralmente confiável.
+					dragStartPos = input.Position
+				end
+
+				-- Captura a posição UDim2 inicial do Frame principal.
 				frameStartPos = Main.Position
                 
                 -- Conexão para rastrear o movimento enquanto o botão/toque está pressionado
 				moveConnection = AddConnection(UserInputService.InputChanged, function(inputChanged)
-					-- Verifica se o input de movimento é do mouse ou toque
+					-- Só executa se estiver arrastando e o input for relevante para movimento
 					if isDragging and (inputChanged.UserInputType == Enum.UserInputType.MouseMovement or inputChanged.UserInputType == Enum.UserInputType.Touch) then
-						local Delta = inputChanged.Position - dragStartPos
+						local currentPos
+						
+						if inputChanged.UserInputType == Enum.UserInputType.MouseMovement then
+							-- CORREÇÃO: Usa a posição atual do Mouse para maior precisão e estabilidade.
+							currentPos = Vector2.new(Mouse.X, Mouse.Y)
+						else 
+							-- Para Touch, usa a nova posição do input.
+							currentPos = inputChanged.Position
+						end
+						
+						local Delta = currentPos - dragStartPos
+						
+						-- Atualiza a posição do Frame principal.
 						Main.Position  = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + Delta.X, frameStartPos.Y.Scale, frameStartPos.Y.Offset + Delta.Y)
 					end
 				end)
                 
-                -- Conexão para parar o arrasto (InputEnded do UserInputService)
+                -- Conexão para parar o arrasto
 				endConnection = AddConnection(UserInputService.InputEnded, function(inputEnded)
 					if inputEnded.UserInputType == Enum.UserInputType.MouseButton1 or inputEnded.UserInputType == Enum.UserInputType.Touch then
 						stopDrag()
@@ -590,7 +600,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			AddThemeObject(SetProps(MakeElement("Frame"), {
 				Size = UDim2.new(1, 0, 0, 1)
 			}), "Stroke"), 
-			AddThemeObject(SetChildren(SetProps(MakeElement("Frame"), {
+			AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 1), {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.new(0, 32, 0, 32),
 				Position = UDim2.new(0, 10, 0.5, 0)
@@ -638,7 +648,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	}), "Stroke")
 
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(0, 0, 0), 0, 10), {
-	  Name = "Frame1", -- ESTE É O FRAME PRINCIPAL QUE É MINIMIZADO
+	    Name = "Frame1", -- ESTE É O FRAME PRINCIPAL QUE É MINIMIZADO
 		Parent = Orion,
 		Position = UDim2.new(0.5, -307, 0.5, -172),
 		Size = UDim2.new(0, 615, 0, 344),
