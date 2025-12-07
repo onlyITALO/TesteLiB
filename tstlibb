@@ -1,172 +1,545 @@
+local OrionLib = {}
+
+-- Services
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local CoreGui = game:GetService("CoreGui")
 
-local OrionLib = {
-    Elements = {},
-    ThemeObjects = {},
-    Connections = {},
-    Flags = {},
-    Themes = {
-        Default = {
-            Main = Color3.fromRGB(0,0,0),
-            Second = Color3.fromRGB(10,10,10),
-            Stroke = Color3.fromRGB(0,170,255),
-            Divider = Color3.fromRGB(60,60,60),
-            Text = Color3.fromRGB(240,240,240),
-            TextDark = Color3.fromRGB(150,150,150)
-        }
-    },
-    SelectedTheme = "Default",
-    Folder = nil,
-    SaveCfg = false
-}
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = HttpService:GenerateGUID(false)
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
 
--- Feather Icons
-local Icons = {}
-pcall(function()
-    Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
-end)
-local function GetIcon(IconName) return Icons[IconName] or nil end
+local config = {}
+local windows = {}
+local notifications = {}
 
--- GUI Setup
-local Orion = Instance.new("ScreenGui")
-local guiRH = Instance.new("ScreenGui", Orion)
-local nextb = Instance.new("ImageButton", guiRH)
-local gui = Instance.new("UICorner", nextb)
-
-Orion.Name = "ITALO CLIENT"
-guiRH.Name = "Minimize"
-
-nextb.Position = UDim2.new(0,100,0,60)
-nextb.Size = UDim2.new(0,40,0,40)
-nextb.BackgroundColor3 = Color3.fromRGB(25,25,25)
-nextb.Image = "rbxassetid://7072720870"
-nextb.Visible = false
-nextb.Active = true
-nextb.Draggable = true
-
--- Corrigido para PC e celular
-nextb.Activated:Connect(function()
-    if Orion.Frame1 then
-        Orion.Frame1.Visible = not Orion.Frame1.Visible
-        nextb.Image = Orion.Frame1.Visible and "rbxassetid://7072720870" or "rbxassetid://7072719338"
-    end
-end)
-
--- Função genérica para botões
-local function ConnectButton(Button, Callback)
-    if Button then
-        Button.Active = true
-        Button.Activated:Connect(Callback)
+-- Config Setup
+local function setupConfig(name)
+    local configName = name or "Default"
+    config[configName] = {}
+    
+    local success, loadedConfig = pcall(function()
+        return game:GetObjects("rbxassetid://494429994")[1].Value
+    end)
+    
+    if success and loadedConfig then
+        local decoded = HttpService:JSONDecode(loadedConfig)
+        if type(decoded) == "table" then
+            config[configName] = decoded
+        end
     end
 end
 
--- Parent GUI corretamente
-if syn then
-    syn.protect_gui(Orion)
-    Orion.Parent = game.CoreGui
-else
-    Orion.Parent = gethui() or game.CoreGui
+-- Save Config
+local function saveConfig(name)
+    local configName = name or "Default"
+    local encoded = HttpService:JSONEncode(config[configName])
+    -- Implement saving logic here if needed (e.g., external save system if allowed by executor)
 end
 
--- Remove duplicados
-for _, Interface in ipairs(Orion.Parent:GetChildren()) do
-    if Interface.Name == Orion.Name and Interface ~= Orion then Interface:Destroy() end
-end
+-- Draggable Function (CORRECTION HERE)
+local function Draggable(Window, Config)
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
 
--- Funções utilitárias
-function OrionLib:IsRunning()
-    return Orion.Parent == game:GetService("CoreGui") or (gethui and Orion.Parent == gethui())
-end
+    Window.Titlebar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Window.Frame.Position
+            input.TargetFilter = Window.Frame
+            dragInput = input
+        end
+    end)
 
-local function AddConnection(Signal, Func)
-    if not OrionLib:IsRunning() then return end
-    local Connection = Signal:Connect(Func)
-    table.insert(OrionLib.Connections, Connection)
-    return Connection
-end
+    Window.Titlebar.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Window.Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 
-task.spawn(function()
-    while OrionLib:IsRunning() do wait() end
-    for _, Connection in ipairs(OrionLib.Connections) do
-        Connection:Disconnect()
+    Window.Titlebar.InputEnded:Connect(function(input)
+        if input == dragInput then
+            dragging = false
+            dragInput = nil
+            -- Save position here if needed
+            if Config.SaveConfig then
+                local confName = Config.ConfigFolder or "Default"
+                config[confName].Position = Window.Frame.Position
+                saveConfig(confName)
+            end
+        end
+    end)
+end
+-- End Draggable Function
+
+-- Notification System
+local function MakeNotification(data)
+    local notification = Instance.new("Frame")
+    notification.Size = UDim2.new(0, 250, 0, 50)
+    notification.AnchorPoint = Vector2.new(1, 1)
+    notification.Position = UDim2.new(1, -10, 1, -10)
+    notification.BackgroundTransparency = 0
+    notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    notification.BorderSizePixel = 0
+    notification.Parent = ScreenGui
+    notification.ZIndex = 999 
+    
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(1, 0, 0, 20)
+    NameLabel.Position = UDim2.new(0, 0, 0, 5)
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Font = Enum.Font.SourceSans
+    NameLabel.Text = data.Name or "Notification"
+    NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NameLabel.TextSize = 18
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.TextWrapped = true
+    NameLabel.Parent = notification
+    
+    local ContentLabel = Instance.new("TextLabel")
+    ContentLabel.Size = UDim2.new(1, 0, 0, 20)
+    ContentLabel.Position = UDim2.new(0, 0, 0, 25)
+    ContentLabel.BackgroundTransparency = 1
+    ContentLabel.Font = Enum.Font.SourceSans
+    ContentLabel.Text = data.Content or "Content here."
+    ContentLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    ContentLabel.TextSize = 14
+    ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ContentLabel.TextWrapped = true
+    ContentLabel.Parent = notification
+
+    -- Image (optional)
+    if data.Image then
+        local Image = Instance.new("ImageLabel")
+        Image.Size = UDim2.new(0, 30, 0, 30)
+        Image.Position = UDim2.new(0, 5, 0, 10)
+        Image.BackgroundTransparency = 1
+        Image.Image = data.Image
+        Image.Parent = notification
+        
+        NameLabel.Position = UDim2.new(0, 40, 0, 5)
+        ContentLabel.Position = UDim2.new(0, 40, 0, 25)
+        NameLabel.Size = UDim2.new(1, -40, 0, 20)
+        ContentLabel.Size = UDim2.new(1, -40, 0, 20)
     end
-end)
+    
+    table.insert(notifications, notification)
+    
+    -- Positioning logic
+    local function repositionNotifications()
+        local yOffset = -10
+        for i, notif in ipairs(notifications) do
+            local newY = ScreenGui.AbsoluteSize.Y - yOffset - notif.AbsoluteSize.Y
+            TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(1, -10, 0, newY)}):Play()
+            yOffset = yOffset + notif.AbsoluteSize.Y + 10
+        end
+    end
 
-local function MakeDraggable(DragPoint, Main)
-    local Dragging, DragInput, MousePos, FramePos = false
-    AddConnection(DragPoint.InputBegan, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            Dragging = true
-            MousePos = Input.Position
-            FramePos = Main.Position
-            Input.Changed:Connect(function()
-                if Input.UserInputState == Enum.UserInputState.End then Dragging = false end
+    repositionNotifications()
+    
+    -- Timeout and Destroy
+    local timeToWait = data.Time or 5
+    delay(timeToWait, function()
+        TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(1, 260, notification.Position.Y.Scale, notification.Position.Y.Offset)}):Play()
+        delay(0.3, function()
+            table.remove(notifications, table.find(notifications, notification))
+            notification:Destroy()
+            repositionNotifications()
+        end)
+    end)
+end
+OrionLib.MakeNotification = MakeNotification
+-- End Notification System
+
+-- Make Window
+local function MakeWindow(data)
+    local Window = {}
+    Window.Tabs = {}
+
+    local Config = {
+        Name = data.Name or "ITALO Client",
+        HidePremium = data.HidePremium or false,
+        SaveConfig = data.SaveConfig or false,
+        ConfigFolder = data.ConfigFolder,
+        IntroEnabled = data.IntroEnabled or false,
+        DefaultPosition = data.DefaultPosition or UDim2.new(0.5, -250, 0.5, -200)
+    }
+
+    if Config.SaveConfig then
+        setupConfig(Config.ConfigFolder)
+        local loadedPos = config[Config.ConfigFolder].Position
+        if loadedPos then
+            Config.DefaultPosition = UDim2.new(loadedPos.X.Scale, loadedPos.X.Offset, loadedPos.Y.Scale, loadedPos.Y.Offset)
+        end
+    end
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 500, 0, 400)
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainFrame.Position = Config.DefaultPosition 
+    mainFrame.BackgroundTransparency = 0
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Name = "Frame"
+    mainFrame.Parent = ScreenGui
+
+    local Titlebar = Instance.new("Frame")
+    Titlebar.Size = UDim2.new(1, 0, 0, 30)
+    Titlebar.BackgroundTransparency = 0
+    Titlebar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Titlebar.BorderSizePixel = 0
+    Titlebar.Name = "Titlebar"
+    Titlebar.Parent = mainFrame
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, -30, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Font = Enum.Font.SourceSans
+    TitleLabel.Text = Config.Name
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 20
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextWrapped = true
+    TitleLabel.Parent = Titlebar
+
+    local TabContainer = Instance.new("Frame")
+    TabContainer.Size = UDim2.new(0.2, 0, 1, -30)
+    TabContainer.Position = UDim2.new(0, 0, 0, 30)
+    TabContainer.BackgroundTransparency = 0
+    TabContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    TabContainer.BorderSizePixel = 0
+    TabContainer.Name = "TabContainer"
+    TabContainer.Parent = mainFrame
+    
+    local TabList = Instance.new("UIListLayout")
+    TabList.Padding = UDim.new(0, 5)
+    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    TabList.VerticalAlignment = Enum.VerticalAlignment.Top
+    TabList.Parent = TabContainer
+
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Size = UDim2.new(0.8, 0, 1, -30)
+    ContentContainer.Position = UDim2.new(0.2, 0, 0, 30)
+    ContentContainer.BackgroundTransparency = 0
+    ContentContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    ContentContainer.BorderSizePixel = 0
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Parent = mainFrame
+
+    -- Dragging
+    Draggable({Frame = mainFrame, Titlebar = Titlebar}, Config)
+
+    local currentTab
+    
+    -- Make Tab
+    function Window:MakeTab(data)
+        local Tab = {}
+        Tab.Elements = {}
+        
+        local TabButton = Instance.new("TextButton")
+        TabButton.Size = UDim2.new(1, -10, 0, 40)
+        TabButton.Position = UDim2.new(0.5, 0, 0, 5)
+        TabButton.AnchorPoint = Vector2.new(0.5, 0)
+        TabButton.BackgroundTransparency = 0
+        TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        TabButton.BorderSizePixel = 0
+        TabButton.Font = Enum.Font.SourceSans
+        TabButton.Text = data.Name or "Tab"
+        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.TextSize = 16
+        TabButton.Parent = TabContainer
+
+        local ContentFrame = Instance.new("Frame")
+        ContentFrame.Size = UDim2.new(1, 0, 1, 0)
+        ContentFrame.BackgroundTransparency = 1
+        ContentFrame.Name = "ContentFrame"
+        ContentFrame.Parent = ContentContainer
+        ContentFrame.Visible = false
+        
+        local ContentLayout = Instance.new("UIListLayout")
+        ContentLayout.Padding = UDim.new(0, 5)
+        ContentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+        ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+        ContentLayout.Parent = ContentFrame
+
+        local ContentPadding = Instance.new("UIPadding")
+        ContentPadding.PaddingBottom = UDim.new(0, 5)
+        ContentPadding.PaddingTop = UDim.new(0, 5)
+        ContentPadding.PaddingLeft = UDim.new(0, 10)
+        ContentPadding.PaddingRight = UDim.new(0, 10)
+        ContentPadding.Parent = ContentFrame
+        
+        -- Tab Selection Logic
+        local function selectTab()
+            if currentTab then
+                currentTab.Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                currentTab.Content.Visible = false
+            end
+            
+            TabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            ContentFrame.Visible = true
+            currentTab = {Button = TabButton, Content = ContentFrame}
+        end
+        
+        TabButton.MouseButton1Click:Connect(selectTab)
+        
+        if not currentTab then
+            selectTab()
+        end
+        
+        table.insert(Window.Tabs, Tab)
+        
+        -- Add Button
+        function Tab:AddButton(data)
+            local Button = Instance.new("TextButton")
+            Button.Size = UDim2.new(1, 0, 0, 30)
+            Button.BackgroundTransparency = 0
+            Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            Button.BorderSizePixel = 0
+            Button.Font = Enum.Font.SourceSans
+            Button.Text = data.Name or "Button"
+            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Button.TextSize = 16
+            Button.TextXAlignment = Enum.TextXAlignment.Left
+            Button.Parent = ContentFrame
+            
+            local TextPadding = Instance.new("UIPadding")
+            TextPadding.PaddingLeft = UDim.new(0, 5)
+            TextPadding.Parent = Button
+
+            -- Event connection (This was already correct, using MouseButton1Click)
+            Button.MouseButton1Click:Connect(function()
+                if data.Callback then
+                    data.Callback()
+                end
             end)
+            
+            table.insert(Tab.Elements, Button)
+            return Button
         end
-    end)
-    AddConnection(DragPoint.InputChanged, function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseMovement then
-            DragInput = Input
+        
+        -- Add Paragraph
+        function Tab:AddParagraph(title, content)
+            local Frame = Instance.new("Frame")
+            Frame.Size = UDim2.new(1, 0, 0, 60)
+            Frame.BackgroundTransparency = 0
+            Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            Frame.BorderSizePixel = 0
+            Frame.Parent = ContentFrame
+            
+            local TitleLabel = Instance.new("TextLabel")
+            TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+            TitleLabel.Position = UDim2.new(0, 5, 0, 5)
+            TitleLabel.BackgroundTransparency = 1
+            TitleLabel.Font = Enum.Font.SourceSans
+            TitleLabel.Text = title or "Title"
+            TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TitleLabel.TextSize = 18
+            TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            TitleLabel.Parent = Frame
+            
+            local ContentLabel = Instance.new("TextLabel")
+            ContentLabel.Size = UDim2.new(1, -10, 0, 30)
+            ContentLabel.Position = UDim2.new(0, 5, 0, 25)
+            ContentLabel.BackgroundTransparency = 1
+            ContentLabel.Font = Enum.Font.SourceSans
+            ContentLabel.Text = content or "Content"
+            ContentLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+            ContentLabel.TextSize = 14
+            ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ContentLabel.TextWrapped = true
+            ContentLabel.Parent = Frame
+            
+            table.insert(Tab.Elements, Frame)
+            return Frame
         end
-    end)
-    AddConnection(UserInputService.InputChanged, function(Input)
-        if Input == DragInput and Dragging then
-            local Delta = Input.Position - MousePos
-            Main.Position = UDim2.new(FramePos.X.Scale, FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
+        
+        -- Add Toggle
+        function Tab:AddToggle(data)
+            -- Implementation of Toggle (similar to button)
+            local ToggleFrame = Instance.new("TextButton") -- Using TextButton for click detection
+            ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
+            ToggleFrame.BackgroundTransparency = 0
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            ToggleFrame.BorderSizePixel = 0
+            ToggleFrame.Font = Enum.Font.SourceSans
+            ToggleFrame.Text = data.Name or "Toggle"
+            ToggleFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ToggleFrame.TextSize = 16
+            ToggleFrame.TextXAlignment = Enum.TextXAlignment.Left
+            ToggleFrame.Parent = ContentFrame
+            
+            local TextPadding = Instance.new("UIPadding")
+            TextPadding.PaddingLeft = UDim.new(0, 5)
+            TextPadding.Parent = ToggleFrame
+            
+            local ToggleIndicator = Instance.new("TextLabel")
+            ToggleIndicator.Size = UDim2.new(0, 50, 1, 0)
+            ToggleIndicator.Position = UDim2.new(1, -50, 0, 0)
+            ToggleIndicator.AnchorPoint = Vector2.new(1, 0)
+            ToggleIndicator.BackgroundTransparency = 1
+            ToggleIndicator.Font = Enum.Font.SourceSans
+            ToggleIndicator.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ToggleIndicator.TextSize = 16
+            ToggleIndicator.TextXAlignment = Enum.TextXAlignment.Center
+            ToggleIndicator.Parent = ToggleFrame
+            
+            local state = data.Default or false
+            
+            local function updateIndicator()
+                if state then
+                    ToggleIndicator.Text = "ON"
+                    ToggleIndicator.TextColor3 = Color3.fromRGB(0, 255, 0)
+                else
+                    ToggleIndicator.Text = "OFF"
+                    ToggleIndicator.TextColor3 = Color3.fromRGB(255, 0, 0)
+                end
+            end
+            updateIndicator()
+            
+            ToggleFrame.MouseButton1Click:Connect(function()
+                state = not state
+                updateIndicator()
+                if data.Callback then
+                    data.Callback(state)
+                end
+            end)
+            
+            table.insert(Tab.Elements, ToggleFrame)
+            return ToggleFrame
         end
-    end)
+        
+        -- Add Slider (Simplified)
+        function Tab:AddSlider(data)
+            local Frame = Instance.new("Frame")
+            Frame.Size = UDim2.new(1, 0, 0, 45)
+            Frame.BackgroundTransparency = 0
+            Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            Frame.BorderSizePixel = 0
+            Frame.Parent = ContentFrame
+            
+            local TitleLabel = Instance.new("TextLabel")
+            TitleLabel.Size = UDim2.new(1, -50, 0, 20)
+            TitleLabel.Position = UDim2.new(0, 5, 0, 5)
+            TitleLabel.BackgroundTransparency = 1
+            TitleLabel.Font = Enum.Font.SourceSans
+            TitleLabel.Text = data.Name or "Slider"
+            TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TitleLabel.TextSize = 16
+            TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            TitleLabel.Parent = Frame
+            
+            local ValueLabel = Instance.new("TextLabel")
+            ValueLabel.Size = UDim2.new(0, 40, 0, 20)
+            ValueLabel.Position = UDim2.new(1, -45, 0, 5)
+            ValueLabel.AnchorPoint = Vector2.new(1, 0)
+            ValueLabel.BackgroundTransparency = 1
+            ValueLabel.Font = Enum.Font.SourceSans
+            ValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ValueLabel.TextSize = 16
+            ValueLabel.TextXAlignment = Enum.TextXAlignment.Center
+            ValueLabel.Parent = Frame
+            
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Size = UDim2.new(1, -10, 0, 10)
+            SliderFrame.Position = UDim2.new(0, 5, 0, 30)
+            SliderFrame.BackgroundTransparency = 0
+            SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            SliderFrame.BorderSizePixel = 0
+            SliderFrame.Parent = Frame
+            
+            local SliderFill = Instance.new("Frame")
+            SliderFill.Size = UDim2.new(0, 0, 1, 0)
+            SliderFill.BackgroundTransparency = 0
+            SliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+            SliderFill.BorderSizePixel = 0
+            SliderFill.Parent = SliderFrame
+            
+            local SliderHandle = Instance.new("TextButton")
+            SliderHandle.Size = UDim2.new(0, 10, 1, 0)
+            SliderHandle.Position = UDim2.new(0, 0, 0, 0)
+            SliderHandle.BackgroundTransparency = 0
+            SliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            SliderHandle.BorderSizePixel = 0
+            SliderHandle.Parent = SliderFrame
+            
+            local min = data.Min or 0
+            local max = data.Max or 100
+            local default = data.Default or min
+            local rounding = data.Rounding or 0
+            local step = data.Step or 1
+            
+            local currentValue = default
+            
+            local function updateSlider(pos)
+                local xPos = math.clamp(pos.X, 0, SliderFrame.AbsoluteSize.X)
+                local percentage = xPos / SliderFrame.AbsoluteSize.X
+                local rawValue = min + (max - min) * percentage
+                local roundedValue = math.floor(rawValue / step + 0.5) * step
+                
+                currentValue = math.floor(roundedValue * (10 ^ rounding)) / (10 ^ rounding)
+                
+                local currentPercentage = (currentValue - min) / (max - min)
+                local handlePos = currentPercentage * SliderFrame.AbsoluteSize.X
+                
+                SliderFill.Size = UDim2.new(0, handlePos, 1, 0)
+                SliderHandle.Position = UDim2.new(0, handlePos - SliderHandle.Size.X.Offset / 2, 0, 0)
+                ValueLabel.Text = tostring(currentValue)
+                
+                if data.Callback then
+                    data.Callback(currentValue)
+                end
+            end
+            
+            -- Initial update
+            updateSlider({X = (default - min) / (max - min) * SliderFrame.AbsoluteSize.X})
+            
+            local draggingSlider = false
+            SliderFrame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSlider = true
+                    updateSlider(input.Position - SliderFrame.AbsolutePosition)
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input.Position - SliderFrame.AbsolutePosition)
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSlider = false
+                end
+            end)
+            
+            table.insert(Tab.Elements, Frame)
+            return Frame
+        end
+        
+        -- Return Tab
+        return Tab
+    end
+    
+    -- Return Window
+    return Window
+end
+OrionLib.MakeWindow = MakeWindow
+
+-- Premium Status (simplified placeholder)
+function OrionLib.IsPremium()
+    return game.Players.LocalPlayer.MembershipType == Enum.MembershipType.Premium
 end
 
--- Funções para criação de elementos
-local function Create(Name, Properties, Children)
-    local Object = Instance.new(Name)
-    for i,v in pairs(Properties or {}) do Object[i] = v end
-    for i,v in pairs(Children or {}) do v.Parent = Object end
-    return Object
-end
-
-local function CreateElement(ElementName, ElementFunction)
-    OrionLib.Elements[ElementName] = function(...) return ElementFunction(...) end
-end
-
-local function MakeElement(ElementName, ...)
-    return OrionLib.Elements[ElementName](...)
-end
-
-local function SetProps(Element, Props)
-    for Property, Value in pairs(Props) do Element[Property] = Value end
-    return Element
-end
-
-local function SetChildren(Element, Children)
-    for _, Child in pairs(Children) do Child.Parent = Element end
-    return Element
-end
-
--- Exemplo de elementos padrões
-CreateElement("Corner", function(Scale, Offset)
-    return Create("UICorner", {CornerRadius = UDim.new(Scale or 0, Offset or 10)})
-end)
-CreateElement("Stroke", function(Color, Thickness)
-    return Create("UIStroke", {Color = Color or Color3.fromRGB(255,255,255), Thickness = Thickness or 1})
-end)
-CreateElement("List", function(Scale, Offset)
-    return Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(Scale or 0, Offset or 0)})
-end)
-CreateElement("Padding", function(Bottom, Left, Right, Top)
-    return Create("UIPadding", {PaddingBottom=UDim.new(0,Bottom or 4), PaddingLeft=UDim.new(0,Left or 4), PaddingRight=UDim.new(0,Right or 4), PaddingTop=UDim.new(0,Top or 4)})
-end)
-CreateElement("TFrame", function()
-    return Create("Frame",{BackgroundTransparency=1})
-end)
-
--- TODO: Adicionar todas as funções restantes da library original
--- Certifique-se de trocar todos os eventos MouseButton1Down por Activated
--- Adicionar Active = true para cada botão criado
--- Preservar abas, sliders, cores, etc.
+-- Final return
+return OrionLib
