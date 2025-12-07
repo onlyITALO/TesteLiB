@@ -65,34 +65,32 @@ nextb.MouseButton1Down:connect(function()
   Orion.Frame1.Visible = not Orion.Frame1.Visible
 end)
 
-if syn then
-	syn.protect_gui(Orion)
+-- *********************************************************************************
+-- PATCH DE ESTABILIDADE CRÍTICA (Linhas 59-79)
+-- Garante que o Hub abra, mesmo que 'gethui' não esteja disponível
+-- *********************************************************************************
+if syn and syn.protect_gui then
+	pcall(syn.protect_gui, Orion) -- Usando pcall para a função de proteção para maior segurança
 	Orion.Parent = game.CoreGui
 else
-	Orion.Parent = gethui() or game.CoreGui
+	-- Força o parent para CoreGui se 'syn' não estiver presente,
+    -- evitando o crash fatal ao chamar uma 'gethui()' indefinida.
+	Orion.Parent = game.CoreGui
 end
 
-if gethui then
-	for _, Interface in ipairs(gethui():GetChildren()) do
-		if Interface.Name == Orion.Name and Interface ~= Orion then
-			Interface:Destroy()
-		end
-	end
-else
-	for _, Interface in ipairs(game.CoreGui:GetChildren()) do
-		if Interface.Name == Orion.Name and Interface ~= Orion then
-			Interface:Destroy()
-		end
-	end
+-- Limpeza de GUIs antigas (também forçando CoreGui para estabilidade)
+for _, Interface in ipairs(game.CoreGui:GetChildren()) do
+    if Interface.Name == Orion.Name and Interface ~= Orion then
+        Interface:Destroy()
+    end
 end
+-- *********************************************************************************
+-- FIM DO PATCH DE ESTABILIDADE
+-- *********************************************************************************
 
 function OrionLib:IsRunning()
-	-- Corrigido para verificar a existência do Orion na CoreGui ou gethui()
-	if gethui then
-		return Orion.Parent == gethui() or Orion.Parent == game.CoreGui
-	else
-		return Orion.Parent == game:GetService("CoreGui")
-	end
+	-- Corrigido para verificar a existência do Orion na CoreGui
+	return Orion.Parent == game.CoreGui
 end
 
 local function AddConnection(Signal, Function)
@@ -162,7 +160,7 @@ local function MakeDraggable(DragPoint, Main)
 	end)
 end
 -- *********************************************************************************
--- FIM DA CORREÇÃO
+-- FIM DA FUNÇÃO MakeDraggable
 -- *********************************************************************************
 
 local function Create(Name, Properties, Children)
