@@ -1,74 +1,190 @@
-
--- ROBLUE UI LIBRARY
--- Recreated to match original ITALO CLIENT visuals
--- PC & Mobile compatible
+-- ROBLUE LIBRARY (XENO SAFE)
+-- Orion / ITALO compatible
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+
 local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local Roblue = {}
+-- cleanup old instances
+local old = PlayerGui:FindFirstChild("ROBLUE_GUI")
+if old then old:Destroy() end
 
-function Roblue:CreateWindow(title)
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "ROBLUE"
-    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
+local Library = {}
+Library.__index = Library
 
-    local Main = Instance.new("Frame")
-    Main.Size = UDim2.fromScale(0.55,0.6)
-    Main.Position = UDim2.fromScale(0.22,0.2)
-    Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    Main.BorderSizePixel = 0
-    Main.Parent = ScreenGui
-    Main.Active = true
-    Main.Draggable = true
+-- Notification
+function Library:MakeNotification(data)
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ROBLUE_NOTIFY"
+    gui.Parent = PlayerGui
 
-    local UICorner = Instance.new("UICorner", Main)
-    UICorner.CornerRadius = UDim.new(0,16)
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.fromOffset(320, 60)
+    frame.Position = UDim2.new(1, -340, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    frame.BorderSizePixel = 0
 
-    local Top = Instance.new("Frame", Main)
-    Top.Size = UDim2.new(1,0,0,40)
-    Top.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    Top.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
 
-    local titleLabel = Instance.new("TextLabel", Top)
-    titleLabel.Size = UDim2.new(1,-80,1,0)
-    titleLabel.Position = UDim2.new(0,15,0,0)
-    titleLabel.Text = title or "ROBLUE"
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 18
-    titleLabel.TextColor3 = Color3.new(1,1,1)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1,-20,0,22)
+    title.Position = UDim2.fromOffset(10,6)
+    title.BackgroundTransparency = 1
+    title.Text = data.Name or "Notification"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(255,255,255)
+    title.TextXAlignment = Left
 
-    local close = Instance.new("TextButton", Top)
-    close.Size = UDim2.fromOffset(30,30)
-    close.Position = UDim2.new(1,-40,0,5)
-    close.Text = "X"
-    close.Font = Enum.Font.GothamBold
-    close.TextSize = 14
-    close.TextColor3 = Color3.new(1,1,1)
-    close.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    local content = Instance.new("TextLabel", frame)
+    content.Size = UDim2.new(1,-20,0,26)
+    content.Position = UDim2.fromOffset(10,28)
+    content.BackgroundTransparency = 1
+    content.TextWrapped = true
+    content.Text = data.Content or ""
+    content.Font = Enum.Font.Gotham
+    content.TextSize = 13
+    content.TextColor3 = Color3.fromRGB(220,220,220)
+    content.TextXAlignment = Left
 
-    local minimize = Instance.new("TextButton", Top)
-    minimize.Size = UDim2.fromOffset(30,30)
-    minimize.Position = UDim2.new(1,-75,0,5)
-    minimize.Text = "-"
-    minimize.Font = Enum.Font.GothamBold
-    minimize.TextSize = 14
-    minimize.TextColor3 = Color3.new(1,1,1)
-    minimize.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    TweenService:Create(frame, TweenInfo.new(0.3), {
+        Position = UDim2.new(1, -340, 0, 20)
+    }):Play()
 
-    close.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
+    task.delay(data.Time or 4, function()
+        gui:Destroy()
     end)
-
-    minimize.MouseButton1Click:Connect(function()
-        TweenService:Create(Main, TweenInfo.new(0.3), {Size = UDim2.fromScale(0.55,0)}):Play()
-    end)
-
-    return ScreenGui
 end
 
-return Roblue
+-- Window
+function Library:MakeWindow(config)
+    local GUI = Instance.new("ScreenGui")
+    GUI.Name = "ROBLUE_GUI"
+    GUI.Parent = PlayerGui
+
+    local Main = Instance.new("Frame", GUI)
+    Main.Size = UDim2.fromOffset(620, 420)
+    Main.Position = UDim2.fromScale(0.5,0.5)
+    Main.AnchorPoint = Vector2.new(0.5,0.5)
+    Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    Main.BorderSizePixel = 0
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
+
+    -- Top
+    local Top = Instance.new("Frame", Main)
+    Top.Size = UDim2.new(1,0,0,40)
+    Top.BackgroundColor3 = Color3.fromRGB(24,24,24)
+    Top.BorderSizePixel = 0
+    Instance.new("UICorner", Top).CornerRadius = UDim.new(0,12)
+
+    local Title = Instance.new("TextLabel", Top)
+    Title.Size = UDim2.new(1,-60,1,0)
+    Title.Position = UDim2.fromOffset(14,0)
+    Title.BackgroundTransparency = 1
+    Title.Text = config.Name or "Roblue"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 16
+    Title.TextColor3 = Color3.fromRGB(255,255,255)
+    Title.TextXAlignment = Left
+
+    local Close = Instance.new("TextButton", Top)
+    Close.Size = UDim2.fromOffset(30,24)
+    Close.Position = UDim2.new(1,-38,0,8)
+    Close.Text = "X"
+    Close.Font = Enum.Font.GothamBold
+    Close.TextSize = 14
+    Close.TextColor3 = Color3.fromRGB(255,255,255)
+    Close.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    Close.BorderSizePixel = 0
+    Instance.new("UICorner", Close).CornerRadius = UDim.new(0,6)
+
+    Close.MouseButton1Click:Connect(function()
+        GUI:Destroy()
+    end)
+
+    -- Sidebar
+    local Sidebar = Instance.new("Frame", Main)
+    Sidebar.Position = UDim2.fromOffset(0,40)
+    Sidebar.Size = UDim2.fromOffset(140,380)
+    Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,22)
+    Sidebar.BorderSizePixel = 0
+
+    -- Content
+    local Content = Instance.new("Frame", Main)
+    Content.Position = UDim2.fromOffset(140,40)
+    Content.Size = UDim2.fromOffset(480,380)
+    Content.BackgroundTransparency = 1
+
+    local Tabs = {}
+    local CurrentTab
+
+    local Window = {}
+
+    function Window:MakeTab(tab)
+        local Button = Instance.new("TextButton", Sidebar)
+        Button.Size = UDim2.new(1,0,0,40)
+        Button.BackgroundTransparency = 1
+        Button.Text = tab.Name
+        Button.Font = Enum.Font.Gotham
+        Button.TextSize = 14
+        Button.TextColor3 = Color3.fromRGB(230,230,230)
+
+        local Page = Instance.new("Frame", Content)
+        Page.Size = UDim2.new(1,0,1,0)
+        Page.Visible = false
+        Page.BackgroundTransparency = 1
+
+        local Layout = Instance.new("UIListLayout", Page)
+        Layout.Padding = UDim.new(0,8)
+
+        Button.MouseButton1Click:Connect(function()
+            if CurrentTab then CurrentTab.Visible = false end
+            Page.Visible = true
+            CurrentTab = Page
+        end)
+
+        if not CurrentTab then
+            Page.Visible = true
+            CurrentTab = Page
+        end
+
+        local Tab = {}
+
+        function Tab:AddButton(btn)
+            local B = Instance.new("TextButton", Page)
+            B.Size = UDim2.new(1,0,0,40)
+            B.BackgroundColor3 = Color3.fromRGB(38,38,38)
+            B.Text = btn.Name
+            B.TextColor3 = Color3.fromRGB(255,255,255)
+            B.Font = Enum.Font.GothamBold
+            B.TextSize = 14
+            B.BorderSizePixel = 0
+            Instance.new("UICorner", B).CornerRadius = UDim.new(0,8)
+
+            B.MouseButton1Click:Connect(function()
+                pcall(btn.Callback)
+            end)
+        end
+
+        function Tab:AddParagraph(title,text)
+            local T = Instance.new("TextLabel", Page)
+            T.Size = UDim2.new(1,0,0,50)
+            T.TextWrapped = true
+            T.BackgroundTransparency = 1
+            T.Text = title .. "\n" .. text
+            T.TextColor3 = Color3.fromRGB(220,220,220)
+            T.Font = Enum.Font.Gotham
+            T.TextSize = 13
+            T.TextXAlignment = Left
+            T.TextYAlignment = Top
+        end
+
+        return Tab
+    end
+
+    return Window
+end
+
+return Library
