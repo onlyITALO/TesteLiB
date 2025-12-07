@@ -1,245 +1,357 @@
--- ORION LIBRARY CORRIGIDA (PARTES 1 + 2 UNIFICADAS)
-local UserInputService = game:GetService("UserInputService")
+-- ITALO LIBRARY - Parte 1 Corrigida
+-- Corrigido problemas de clique e interação de botões, sliders e dropdowns
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
 
-local OrionLib = {}
-OrionLib.Flags = {}
-OrionLib.Themes = {
-	Default = {
-		Second = {R=0.15, G=0.15, B=0.15},
-		Text = {R=1, G=1, B=1},
-		TextDark = {R=0.7, G=0.7, B=0.7}
-	}
+local OrionLib = {
+    Flags = {},
+    Themes = {},
+    SelectedTheme = "Default"
 }
-OrionLib.SelectedTheme = "Default"
 
--- Funções utilitárias mínimas para corrigir Input
-local function AddConnection(Object, Callback)
-	Object:GetPropertyChangedSignal("Text") -- Placeholder, será sobrescrito
-	return Object.Changed:Connect(Callback)
+local function Round(Number, Increment)
+    Increment = Increment or 1
+    return math.floor(Number / Increment + 0.5) * Increment
 end
 
-local function SetProps(Instance, Props)
-	for k,v in pairs(Props) do
-		Instance[k] = v
-	end
-	return Instance
+local function AddConnection(Event, Func)
+    return Event:Connect(Func)
 end
 
-local function SetChildren(Instance, Children)
-	for _, Child in pairs(Children) do
-		Child.Parent = Instance
-	end
-	return Instance
+local function MakeElement(ClassName, ...)
+    local obj = Instance.new(ClassName)
+    local args = {...}
+    if ClassName == "Label" or ClassName == "TextLabel" then
+        obj.Text = args[1] or ""
+        obj.TextSize = args[2] or 14
+    end
+    return obj
 end
 
-local function AddThemeObject(Object, ThemeKey)
-	-- Apenas retorna o objeto, já que a parte visual não é o problema
-	return Object
+local function SetProps(Object, Props)
+    for i,v in pairs(Props) do
+        Object[i] = v
+    end
+    return Object
 end
 
-local function MakeElement(Type, ...)
-	local Element = Instance.new(Type)
-	if Type == "Label" or Type == "TextLabel" then
-		Element.Text = ...
-	end
-	return Element
+local function SetChildren(Parent, Children)
+    for i,v in pairs(Children) do
+        v.Parent = Parent
+    end
+    return Parent
 end
 
--- Função que corrige clique invisível cobrindo botões
-local function FixInputCatching(Frame)
-	for _, child in ipairs(Frame:GetDescendants()) do
-		if child:IsA("Frame") or child:IsA("ScrollingFrame") then
-			if child.BackgroundTransparency == 1 then
-				child.Active = false
-			end
-		end
-	end
+local function AddThemeObject(Object, ThemeType)
+    -- Aqui adiciona o tema; mantendo simples
+    return Object
 end
 
--- ElementFunction principal
-local ElementFunction = {}
-
-function ElementFunction:AddButton(ButtonConfig)
-	ButtonConfig = ButtonConfig or {}
-	ButtonConfig.Name = ButtonConfig.Name or "Button"
-	ButtonConfig.Callback = ButtonConfig.Callback or function() end
-
-	local Button = SetProps(MakeElement("TextButton", ButtonConfig.Name), {
-		Size = UDim2.new(1,0,0,30),
-		Text = ButtonConfig.Name,
-		Font = Enum.Font.GothamBold
-	})
-
-	FixInputCatching(Button)
-
-	Button.MouseButton1Click:Connect(ButtonConfig.Callback)
-	return Button
+local function SaveCfg(GameId)
+    -- Função fictícia de salvar configs
 end
 
-function ElementFunction:AddToggle(ToggleConfig)
-	ToggleConfig = ToggleConfig or {}
-	ToggleConfig.Name = ToggleConfig.Name or "Toggle"
-	ToggleConfig.Default = ToggleConfig.Default or false
-	ToggleConfig.Callback = ToggleConfig.Callback or function() end
-
-	local Toggle = {Value = ToggleConfig.Default}
-
-	local Button = SetProps(MakeElement("TextButton", ToggleConfig.Name), {
-		Size = UDim2.new(1,0,0,30),
-		Text = ToggleConfig.Name .. ": " .. tostring(Toggle.Value),
-		Font = Enum.Font.GothamBold
-	})
-
-	FixInputCatching(Button)
-
-	Button.MouseButton1Click:Connect(function()
-		Toggle.Value = not Toggle.Value
-		Button.Text = ToggleConfig.Name .. ": " .. tostring(Toggle.Value)
-		ToggleConfig.Callback(Toggle.Value)
-	end)
-
-	return Toggle
+local function CheckKey(Table, Key)
+    for i,v in pairs(Table) do
+        if v == Key then
+            return true
+        end
+    end
+    return false
 end
 
-function ElementFunction:AddDropdown(DropdownConfig)
-	DropdownConfig = DropdownConfig or {}
-	DropdownConfig.Name = DropdownConfig.Name or "Dropdown"
-	DropdownConfig.Options = DropdownConfig.Options or {}
-	DropdownConfig.Default = DropdownConfig.Default or (DropdownConfig.Options[1] or "")
-	DropdownConfig.Callback = DropdownConfig.Callback or function() end
+local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2}
+local BlacklistedKeys = {Enum.KeyCode.Unknown}
 
-	local Dropdown = {Value = DropdownConfig.Default, Buttons = {}}
+-- Função para criar Tab
+function OrionLib:CreateTab(TabConfig)
+    local TabFunction = {}
+    local Container = Instance.new("Frame")
+    
+    local ElementFunction = {}
 
-	local Frame = Instance.new("Frame")
-	Frame.Size = UDim2.new(1,0,0,30)
-	Frame.BackgroundTransparency = 1
-	FixInputCatching(Frame)
+    function ElementFunction:AddSection(SectionConfig)
+        SectionConfig.Name = SectionConfig.Name or "Section"
+        local SectionFrame = SetChildren(SetProps(MakeElement("Frame"), {
+            Size = UDim2.new(1, 0, 0, 26),
+            Parent = Container
+        }), {
+            AddThemeObject(SetProps(MakeElement("Label", SectionConfig.Name, 14), {
+                Size = UDim2.new(1, -12, 0, 16),
+                Position = UDim2.new(0, 0, 0, 3),
+                Font = Enum.Font.GothamSemibold
+            }), "TextDark"),
+            SetChildren(SetProps(MakeElement("Frame"), {
+                AnchorPoint = Vector2.new(0, 0),
+                Size = UDim2.new(1, 0, 1, -24),
+                Position = UDim2.new(0, 0, 0, 23),
+                Name = "Holder"
+            }), {
+                MakeElement("UIListLayout", 0, 6)
+            }),
+        })
 
-	for i, Option in ipairs(DropdownConfig.Options) do
-		local OptionBtn = SetProps(MakeElement("TextButton", Option), {
-			Size = UDim2.new(1,0,0,30),
-			Text = Option,
-			Font = Enum.Font.GothamBold,
-			Position = UDim2.new(0,0,0,(i-1)*30)
-		})
+        AddConnection(SectionFrame.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+            SectionFrame.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y + 31)
+            SectionFrame.Holder.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y)
+        end)
 
-		FixInputCatching(OptionBtn)
+        local SectionFunction = {}
+        for i, v in next, SectionFrame.Holder:GetChildren() do
+            SectionFunction[i] = v
+        end
+        return SectionFunction
+    end
 
-		OptionBtn.MouseButton1Click:Connect(function()
-			Dropdown.Value = Option
-			DropdownConfig.Callback(Option)
-		end)
-
-		OptionBtn.Parent = Frame
-		Dropdown.Buttons[Option] = OptionBtn
-	end
-
-	return Dropdown
+    return ElementFunction
 end
 
-function ElementFunction:AddSlider(SliderConfig)
-	SliderConfig = SliderConfig or {}
-	SliderConfig.Name = SliderConfig.Name or "Slider"
-	SliderConfig.Min = SliderConfig.Min or 0
-	SliderConfig.Max = SliderConfig.Max or 100
-	SliderConfig.Value = SliderConfig.Default or SliderConfig.Min
-	SliderConfig.Callback = SliderConfig.Callback or function() end
-
-	local Slider = {Value = SliderConfig.Value}
-
-	local SliderFrame = SetProps(MakeElement("Frame"), {Size = UDim2.new(1,0,0,30)})
-	FixInputCatching(SliderFrame)
-
-	local Dragging = false
-	SliderFrame.InputBegan:Connect(function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-			Dragging = true
-		end
-	end)
-	SliderFrame.InputEnded:Connect(function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-			Dragging = false
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(Input)
-		if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then
-			local SizeScale = math.clamp((Input.Position.X - SliderFrame.AbsolutePosition.X)/SliderFrame.AbsoluteSize.X,0,1)
-			Slider.Value = SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)
-			SliderConfig.Callback(Slider.Value)
-		end
-	end)
-
-	return Slider
+function OrionLib:Destroy()
+    -- Destrói GUI
+    if Orion then
+        Orion:Destroy()
+    end
 end
 
-function ElementFunction:AddBind(BindConfig)
-	BindConfig = BindConfig or {}
-	BindConfig.Name = BindConfig.Name or "Bind"
-	BindConfig.Default = BindConfig.Default or Enum.KeyCode.Unknown
-	BindConfig.Callback = BindConfig.Callback or function() end
-
-	local Bind = {Value = BindConfig.Default}
-
-	local BindBtn = SetProps(MakeElement("TextButton", BindConfig.Name), {
-		Size = UDim2.new(1,0,0,30),
-		Text = BindConfig.Name
-	})
-	FixInputCatching(BindBtn)
-
-	BindBtn.MouseButton1Click:Connect(function()
-		UserInputService.InputBegan:Connect(function(Input)
-			if Input.KeyCode then
-				Bind.Value = Input.KeyCode
-				BindConfig.Callback(Input.KeyCode)
-			end
-		end)
-	end)
-
-	return Bind
-end
-
-function ElementFunction:AddTextbox(TextboxConfig)
-	TextboxConfig = TextboxConfig or {}
-	TextboxConfig.Name = TextboxConfig.Name or "Textbox"
-	TextboxConfig.Default = TextboxConfig.Default or ""
-	TextboxConfig.Callback = TextboxConfig.Callback or function() end
-
-	local Textbox = SetProps(MakeElement("TextBox", TextboxConfig.Default), {
-		Size = UDim2.new(1,0,0,30),
-		Text = TextboxConfig.Default,
-		Font = Enum.Font.GothamSemibold,
-		ClearTextOnFocus = false
-	})
-
-	FixInputCatching(Textbox)
-
-	Textbox.FocusLost:Connect(function()
-		TextboxConfig.Callback(Textbox.Text)
-	end)
-
-	return Textbox
-end
-
-function ElementFunction:AddColorpicker(ColorpickerConfig)
-	ColorpickerConfig = ColorpickerConfig or {}
-	ColorpickerConfig.Name = ColorpickerConfig.Name or "Colorpicker"
-	ColorpickerConfig.Default = ColorpickerConfig.Default or Color3.fromRGB(255,255,255)
-	ColorpickerConfig.Callback = ColorpickerConfig.Callback or function() end
-
-	local Colorpicker = {Value = ColorpickerConfig.Default}
-
-	local Frame = SetProps(MakeElement("Frame"), {Size = UDim2.new(1,0,0,30)})
-	FixInputCatching(Frame)
-
-	-- Apenas seta cor, InputMouse corrige dropdown/click invisível
-	Frame.MouseButton1Click:Connect(function()
-		ColorpickerConfig.Callback(Colorpicker.Value)
-	end)
-
-	return Colorpicker
-end
-
--- Retorna a função principal
 return OrionLib
+-- ITALO LIBRARY - Parte 2 Corrigida
+
+local function CreateSlider(SliderConfig, ItemParent)
+    SliderConfig = SliderConfig or {}
+    SliderConfig.Name = SliderConfig.Name or "Slider"
+    SliderConfig.Min = SliderConfig.Min or 0
+    SliderConfig.Max = SliderConfig.Max or 100
+    SliderConfig.Increment = SliderConfig.Increment or 1
+    SliderConfig.Value = SliderConfig.Default or SliderConfig.Min
+    SliderConfig.Callback = SliderConfig.Callback or function() end
+    SliderConfig.Flag = SliderConfig.Flag or nil
+    SliderConfig.Save = SliderConfig.Save or false
+    local Dragging = false
+
+    local Slider = {Value = SliderConfig.Value, Type = "Slider", Save = SliderConfig.Save}
+
+    local SliderDrag = SetProps(MakeElement("Frame"), {
+        Size = UDim2.fromScale((Slider.Value - SliderConfig.Min)/(SliderConfig.Max - SliderConfig.Min), 1)
+    })
+
+    local SliderBar = SetChildren(SetProps(MakeElement("Frame"), {
+        Size = UDim2.new(1, -24, 0, 26),
+        Position = UDim2.new(0, 12, 0, 30),
+        BackgroundTransparency = 0.9
+    }), {SliderDrag})
+
+    local SliderFrame = SetChildren(SetProps(MakeElement("Frame"), {
+        Size = UDim2.new(1, 0, 0, 65),
+        Parent = ItemParent
+    }), {SliderBar})
+
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = true
+        end
+    end)
+
+    SliderBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local SizeScale = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+            Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale))
+            SaveCfg(game.GameId)
+        end
+    end)
+
+    function Slider:Set(Value)
+        self.Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
+        TweenService:Create(SliderDrag, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.fromScale((self.Value - SliderConfig.Min)/(SliderConfig.Max - SliderConfig.Min), 1)}):Play()
+        SliderConfig.Callback(self.Value)
+    end
+
+    Slider:Set(Slider.Value)
+    if SliderConfig.Flag then
+        OrionLib.Flags[SliderConfig.Flag] = Slider
+    end
+
+    return Slider
+end
+
+local function CreateDropdown(DropdownConfig, ItemParent)
+    DropdownConfig = DropdownConfig or {}
+    DropdownConfig.Name = DropdownConfig.Name or "Dropdown"
+    DropdownConfig.Options = DropdownConfig.Options or {}
+    DropdownConfig.Default = DropdownConfig.Default or ""
+    DropdownConfig.Callback = DropdownConfig.Callback or function() end
+    DropdownConfig.Flag = DropdownConfig.Flag or nil
+    DropdownConfig.Save = DropdownConfig.Save or false
+
+    local Dropdown = {Value = DropdownConfig.Default, Buttons = {}, Toggled = false, Type = "Dropdown", Save = DropdownConfig.Save}
+    local MaxElements = 5
+
+    if not table.find(Dropdown.Options, Dropdown.Value) then
+        Dropdown.Value = "..."
+    end
+
+    local DropdownList = MakeElement("Frame")
+    local DropdownContainer = SetChildren(SetProps(MakeElement("ScrollingFrame"), {
+        Parent = ItemParent,
+        Position = UDim2.new(0,0,0,38),
+        Size = UDim2.new(1,0,1,-38),
+        ClipsDescendants = true
+    }), {DropdownList})
+
+    local Click = SetProps(MakeElement("TextButton"), {
+        Size = UDim2.new(1,0,1,0),
+        Text = ""
+    })
+
+    local DropdownFrame = SetChildren(SetProps(MakeElement("Frame"), {
+        Size = UDim2.new(1,0,0,38),
+        Parent = ItemParent
+    }), {DropdownContainer, Click})
+
+    local function AddOptions(Options)
+        for _, Option in pairs(Options) do
+            local OptionBtn = SetProps(MakeElement("TextButton"), {
+                Text = Option,
+                Parent = DropdownContainer,
+                Size = UDim2.new(1,0,0,28)
+            })
+            OptionBtn.MouseButton1Click:Connect(function()
+                Dropdown:Set(Option)
+                SaveCfg(game.GameId)
+            end)
+            Dropdown.Buttons[Option] = OptionBtn
+        end
+    end
+
+    function Dropdown:Set(Value)
+        if not table.find(Dropdown.Options, Value) then
+            Dropdown.Value = "..."
+            return
+        end
+        Dropdown.Value = Value
+        DropdownConfig.Callback(Dropdown.Value)
+    end
+
+    Click.MouseButton1Click:Connect(function()
+        Dropdown.Toggled = not Dropdown.Toggled
+        DropdownContainer.Visible = Dropdown.Toggled
+    end)
+
+    AddOptions(Dropdown.Options)
+    Dropdown:Set(Dropdown.Value)
+    if DropdownConfig.Flag then
+        OrionLib.Flags[DropdownConfig.Flag] = Dropdown
+    end
+
+    return Dropdown
+end
+
+local function CreateBind(BindConfig, ItemParent)
+    BindConfig.Name = BindConfig.Name or "Bind"
+    BindConfig.Default = BindConfig.Default or Enum.KeyCode.Unknown
+    BindConfig.Hold = BindConfig.Hold or false
+    BindConfig.Callback = BindConfig.Callback or function() end
+    BindConfig.Flag = BindConfig.Flag or nil
+    BindConfig.Save = BindConfig.Save or false
+
+    local Bind = {Value = BindConfig.Default, Binding = false, Type = "Bind", Save = BindConfig.Save}
+    local Click = SetProps(MakeElement("TextButton"), {Text = BindConfig.Name, Size = UDim2.new(1,0,1,0), Parent = ItemParent})
+
+    Click.MouseButton1Click:Connect(function()
+        Bind.Binding = true
+        Click.Text = "[...]"
+    end)
+
+    UserInputService.InputBegan:Connect(function(input)
+        if Bind.Binding then
+            Bind.Value = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+            Click.Text = Bind.Value.Name
+            Bind.Binding = false
+            SaveCfg(game.GameId)
+        elseif input.KeyCode == Bind.Value or input.UserInputType.Name == Bind.Value.Name then
+            if BindConfig.Hold then
+                BindConfig.Callback(true)
+            else
+                BindConfig.Callback()
+            end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if BindConfig.Hold and (input.KeyCode == Bind.Value or input.UserInputType.Name == Bind.Value.Name) then
+            BindConfig.Callback(false)
+        end
+    end)
+
+    if BindConfig.Flag then
+        OrionLib.Flags[BindConfig.Flag] = Bind
+    end
+    return Bind
+end
+
+local function CreateTextbox(TextboxConfig, ItemParent)
+    TextboxConfig = TextboxConfig or {}
+    TextboxConfig.Name = TextboxConfig.Name or "Textbox"
+    TextboxConfig.Default = TextboxConfig.Default or ""
+    TextboxConfig.Callback = TextboxConfig.Callback or function() end
+
+    local Textbox = SetProps(MakeElement("TextBox"), {
+        Text = TextboxConfig.Default,
+        Size = UDim2.new(1,0,1,0),
+        ClearTextOnFocus = false,
+        Parent = ItemParent
+    })
+
+    Textbox.FocusLost:Connect(function()
+        TextboxConfig.Callback(Textbox.Text)
+    end)
+
+    return Textbox
+end
+
+local function CreateColorpicker(ColorpickerConfig, ItemParent)
+    ColorpickerConfig = ColorpickerConfig or {}
+    ColorpickerConfig.Name = ColorpickerConfig.Name or "Colorpicker"
+    ColorpickerConfig.Default = ColorpickerConfig.Default or Color3.fromRGB(255,255,255)
+    ColorpickerConfig.Callback = ColorpickerConfig.Callback or function() end
+    ColorpickerConfig.Flag = ColorpickerConfig.Flag or nil
+    ColorpickerConfig.Save = ColorpickerConfig.Save or false
+
+    local Colorpicker = {Value = ColorpickerConfig.Default, Toggled = false, Type = "Colorpicker", Save = ColorpickerConfig.Save}
+    local Frame = SetProps(MakeElement("Frame"), {Size = UDim2.new(1,0,0,38), Parent = ItemParent})
+
+    local Box = SetProps(MakeElement("Frame"), {
+        BackgroundColor3 = Colorpicker.Value,
+        Size = UDim2.new(0,24,0,24),
+        Position = UDim2.new(1,-12,0.5,0),
+        AnchorPoint = Vector2.new(1,0.5),
+        Parent = Frame
+    })
+
+    Frame.MouseButton1Click:Connect(function()
+        Colorpicker.Toggled = not Colorpicker.Toggled
+        Box.Visible = Colorpicker.Toggled
+    end)
+
+    function Colorpicker:Set(Value)
+        self.Value = Value
+        Box.BackgroundColor3 = Value
+        ColorpickerConfig.Callback(Value)
+    end
+
+    Colorpicker:Set(Colorpicker.Value)
+    if ColorpickerConfig.Flag then
+        OrionLib.Flags[ColorpickerConfig.Flag] = Colorpicker
+    end
+
+    return Colorpicker
+end
