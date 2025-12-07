@@ -1,15 +1,4 @@
--- ROBLOX ITALO LIBRARY AJUSTADA PARA PC
-
-local OrionLib = {}
-OrionLib.Flags = {}
-OrionLib.Themes = {
-    Default = {
-        Main = Color3.fromRGB(30,30,30),
-        Second = Color3.fromRGB(45,45,45)
-    }
-}
-OrionLib.SelectedTheme = "Default"
-
+-- Serviços
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -17,156 +6,208 @@ local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
--- Função auxiliar para criar elementos
-local function Create(class, props, children)
-    local inst = Instance.new(class)
-    if props then
-        for k,v in pairs(props) do
-            inst[k] = v
-        end
-    end
-    if children then
-        for _,c in pairs(children) do
-            c.Parent = inst
-        end
-    end
-    return inst
-end
-
--- Função auxiliar de conexão
+-- Funções auxiliares
 local function AddConnection(signal, func)
     return signal:Connect(func)
 end
 
--- Função de salvar configuração (placeholder)
-local function SaveCfg(gameId)
-    -- Aqui você pode implementar salvamento
+local function Round(num, numDecimalPlaces)
+    return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
 end
 
--- FUNÇÃO PRINCIPAL DE CRIAÇÃO DE ELEMENTOS
-function OrionLib:CreateTab(TabConfig)
-    local Container = Create("Frame", {Size = UDim2.new(1,0,1,0)})
-    
-    local TabFunction = {}
-    
-    function TabFunction:AddSection(SectionConfig)
-        SectionConfig.Name = SectionConfig.Name or "Section"
-        local SectionFrame = Create("Frame", {
-            Size = UDim2.new(1,0,0,26),
-            Parent = Container
-        })
-        local Holder = Create("Frame", {
-            Size = UDim2.new(1,0,1,0),
-            Parent = SectionFrame,
-            Name = "Holder"
-        })
-        local SectionFunction = {}
-        return SectionFunction
+local function CheckKey(list, key)
+    for _, v in pairs(list) do
+        if v == key then return true end
     end
+    return false
+end
 
-    function TabFunction:AddDropdown(DropdownConfig)
-        local Dropdown = {Value = DropdownConfig.Default or "", Buttons = {}, Toggled = false}
-        local DropdownFrame = Create("Frame", {Size = UDim2.new(1,0,0,38), Parent = Container})
-        local Click = Create("TextButton", {Size = UDim2.new(1,0,1,0), Text = "", BackgroundTransparency = 1, Active = true})
-        Click.Parent = DropdownFrame
-        
-        -- Garantir todos os botões clicáveis
-        DropdownFrame.Active = true
-        Click.Active = true
-        Click.AutoButtonColor = false
-        
-        -- Ajustar clique do mouse
-        AddConnection(Click.MouseButton1Click, function()
-            Dropdown.Toggled = not Dropdown.Toggled
-            -- Aqui a animação de abrir dropdown
-        end)
-        
-        Dropdown.Set = function(self, Value)
-            self.Value = Value
-            -- Atualizar seleção
+-- ===== PARTE 1 – SLIDER, DROPDOWN, BIND =====
+
+-- Slider
+SliderBar.Active = true
+SliderBar.Selectable = true
+SliderDrag.Active = true
+SliderDrag.Selectable = true
+local Dragging = false
+
+SliderBar.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+        Dragging = true 
+    end 
+end)
+
+SliderBar.InputEnded:Connect(function(Input) 
+    if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+        Dragging = false 
+    end 
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+    if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then 
+        local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
+        SaveCfg(game.GameId)
+    end
+end)
+
+function Slider:Set(Value)
+    self.Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
+    TweenService:Create(SliderDrag,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{
+        Size = UDim2.fromScale((self.Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1)
+    }):Play()
+    SliderBar.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
+    SliderDrag.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
+    SliderConfig.Callback(self.Value)
+end      
+
+Slider:Set(Slider.Value)
+if SliderConfig.Flag then
+    OrionLib.Flags[SliderConfig.Flag] = Slider
+end
+
+-- Dropdown
+Click.Active = true
+Click.Selectable = true
+
+AddConnection(Click.MouseButton1Click, function()
+    Dropdown.Toggled = not Dropdown.Toggled
+    DropdownFrame.F.Line.Visible = Dropdown.Toggled
+    TweenService:Create(DropdownFrame.F.Ico,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{
+        Rotation = Dropdown.Toggled and 180 or 0
+    }):Play()
+    if #Dropdown.Options > MaxElements then
+        TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{
+            Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + (MaxElements * 28)) or UDim2.new(1, 0, 0, 38)
+        }):Play()
+    else
+        TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{
+            Size = Dropdown.Toggled and UDim2.new(1, 0, 0, DropdownList.AbsoluteContentSize.Y + 38) or UDim2.new(1, 0, 0, 38)
+        }):Play()
+    end
+end)
+
+for _, OptionBtn in pairs(Dropdown.Buttons) do
+    OptionBtn.Active = true
+    OptionBtn.Selectable = true
+end
+
+-- Bind
+Click.Active = true
+Click.Selectable = true
+BindBox.Active = true
+BindBox.Selectable = true
+
+AddConnection(UserInputService.InputBegan, function(Input)
+    if UserInputService:GetFocusedTextBox() then return end
+    if (Input.KeyCode.Name == Bind.Value or Input.UserInputType.Name == Bind.Value) and not Bind.Binding then
+        if BindConfig.Hold then
+            Holding = true
+            BindConfig.Callback(Holding)
+        else
+            BindConfig.Callback()
         end
-        
-        return Dropdown
-    end
-
-    function TabFunction:AddBind(BindConfig)
-        local Bind = {Value = BindConfig.Default or Enum.KeyCode.Unknown, Binding = false}
-        local BindFrame = Create("Frame", {Size = UDim2.new(1,0,0,38), Parent = Container})
-        local Click = Create("TextButton", {Size = UDim2.new(1,0,1,0), Text = "", BackgroundTransparency = 1, Active = true})
-        Click.Parent = BindFrame
-        
-        -- Input PC
-        AddConnection(UserInputService.InputBegan, function(Input)
-            if UserInputService:GetFocusedTextBox() then return end
-            if Bind.Binding then
-                Bind.Value = Input.KeyCode.Name or Bind.Value
-                Bind.Binding = false
+    elseif Bind.Binding then
+        local Key
+        pcall(function()
+            if not CheckKey(BlacklistedKeys, Input.KeyCode) then
+                Key = Input.KeyCode
             end
         end)
-        
-        return Bind
-    end
-
-    function TabFunction:AddTextbox(TextboxConfig)
-        local TextboxFrame = Create("Frame", {Size = UDim2.new(1,0,0,38), Parent = Container})
-        local TextboxActual = Create("TextBox", {
-            Size = UDim2.new(1,0,1,0),
-            BackgroundTransparency = 1,
-            TextColor3 = Color3.fromRGB(255,255,255),
-            PlaceholderText = "[Input]",
-            Font = Enum.Font.GothamSemibold,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextSize = 14,
-            ClearTextOnFocus = false,
-            Active = true
-        })
-        TextboxActual.Parent = TextboxFrame
-        
-        local Click = Create("TextButton", {Size = UDim2.new(1,0,1,0), Text="", BackgroundTransparency=1, Active=true})
-        Click.Parent = TextboxFrame
-        
-        -- Garantir clique PC
-        Click.Active = true
-        Click.AutoButtonColor = false
-        
-        AddConnection(TextboxActual.FocusLost, function()
-            if TextboxConfig.Callback then
-                TextboxConfig.Callback(TextboxActual.Text)
+        pcall(function()
+            if CheckKey(WhitelistedMouse, Input.UserInputType) and not Key then
+                Key = Input.UserInputType
             end
         end)
+        Key = Key or Bind.Value
+        Bind:Set(Key)
+        SaveCfg(game.GameId)
     end
+end)
 
-    function TabFunction:AddColorpicker(ColorpickerConfig)
-        local Colorpicker = {Value = ColorpickerConfig.Default or Color3.fromRGB(255,255,255), Toggled = false}
-        local ColorpickerFrame = Create("Frame", {Size = UDim2.new(1,0,0,38), Parent = Container})
-        local Click = Create("TextButton", {Size = UDim2.new(1,0,1,0), Text="", BackgroundTransparency=1, Active=true})
-        Click.Parent = ColorpickerFrame
-        
-        -- Garantir clique PC
-        Click.Active = true
-        Click.AutoButtonColor = false
-        
-        -- Toggle do colorpicker
-        AddConnection(Click.MouseButton1Click, function()
-            Colorpicker.Toggled = not Colorpicker.Toggled
-            -- Mostrar/ocultar seleção de cores
-        end)
-        
-        Colorpicker.Set = function(self, Value)
-            self.Value = Value
-            if ColorpickerConfig.Callback then
-                ColorpickerConfig.Callback(Value)
-            end
-        end
-        
-        return Colorpicker
+-- ===== PARTE 2 – TEXTBOX E COLORPICKER =====
+
+-- Textbox
+Click.Active = true
+Click.Selectable = true
+TextboxActual.Active = true
+TextboxActual.Selectable = true
+
+AddConnection(TextboxActual:GetPropertyChangedSignal("Text"), function()
+    TweenService:Create(TextContainer, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)
+    }):Play()
+end)
+
+AddConnection(TextboxActual.FocusLost, function()
+    TextboxConfig.Callback(TextboxActual.Text)
+    if TextboxConfig.TextDisappear then
+        TextboxActual.Text = ""
     end
-    
-    return TabFunction
+end)
+
+TextboxActual.Text = TextboxConfig.Default
+
+-- Colorpicker
+Click.Active = true
+Click.Selectable = true
+Color.Active = true
+Color.Selectable = true
+Hue.Active = true
+Hue.Selectable = true
+
+AddConnection(Click.MouseButton1Click, function()
+    Colorpicker.Toggled = not Colorpicker.Toggled
+    TweenService:Create(ColorpickerFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{
+        Size = Colorpicker.Toggled and UDim2.new(1, 0, 0, 148) or UDim2.new(1, 0, 0, 38)
+    }):Play()
+    Color.Visible = Colorpicker.Toggled
+    Hue.Visible = Colorpicker.Toggled
+    ColorpickerFrame.F.Line.Visible = Colorpicker.Toggled
+end)
+
+local function UpdateColorPicker()
+    ColorpickerBox.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
+    Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+    Colorpicker:Set(ColorpickerBox.BackgroundColor3)
+    ColorpickerConfig.Callback(ColorpickerBox.BackgroundColor3)
+    SaveCfg(game.GameId)
 end
 
-function OrionLib:Destroy()
-    -- Destroy UI
-end
+AddConnection(Color.InputBegan, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if ColorInput then ColorInput:Disconnect() end
+        ColorInput = AddConnection(RunService.RenderStepped, function()
+            local ColorX = math.clamp(Mouse.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) / Color.AbsoluteSize.X
+            local ColorY = math.clamp(Mouse.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y
+            ColorSelection.Position = UDim2.new(ColorX, 0, ColorY, 0)
+            ColorS = ColorX
+            ColorV = 1 - ColorY
+            UpdateColorPicker()
+        end)
+    end
+end)
 
-return OrionLib
+AddConnection(Color.InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if ColorInput then ColorInput:Disconnect() end
+    end
+end)
+
+AddConnection(Hue.InputBegan, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if HueInput then HueInput:Disconnect() end
+        HueInput = AddConnection(RunService.RenderStepped, function()
+            local HueY = math.clamp(Mouse.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y
+            HueSelection.Position = UDim2.new(0.5, 0, HueY, 0)
+            ColorH = 1 - HueY
+            UpdateColorPicker()
+        end)
+    end
+end)
+
+AddConnection(Hue.InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if HueInput then HueInput:Disconnect() end
+    end
+end)
