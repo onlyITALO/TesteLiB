@@ -1,108 +1,74 @@
--- ROBLUE LIBRARY (AUTO EXEC)
--- Compatível PC e Mobile
+
+-- ROBLUE UI LIBRARY
+-- Recreated to match original ITALO CLIENT visuals
+-- PC & Mobile compatible
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
 
--- Evita abrir duas vezes
-if game.CoreGui:FindFirstChild("ROBLUE_GUI") then
-    game.CoreGui.ROBLUE_GUI:Destroy()
+local Roblue = {}
+
+function Roblue:CreateWindow(title)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ROBLUE"
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+
+    local Main = Instance.new("Frame")
+    Main.Size = UDim2.fromScale(0.55,0.6)
+    Main.Position = UDim2.fromScale(0.22,0.2)
+    Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    Main.BorderSizePixel = 0
+    Main.Parent = ScreenGui
+    Main.Active = true
+    Main.Draggable = true
+
+    local UICorner = Instance.new("UICorner", Main)
+    UICorner.CornerRadius = UDim.new(0,16)
+
+    local Top = Instance.new("Frame", Main)
+    Top.Size = UDim2.new(1,0,0,40)
+    Top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Top.BorderSizePixel = 0
+
+    local titleLabel = Instance.new("TextLabel", Top)
+    titleLabel.Size = UDim2.new(1,-80,1,0)
+    titleLabel.Position = UDim2.new(0,15,0,0)
+    titleLabel.Text = title or "ROBLUE"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = Color3.new(1,1,1)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local close = Instance.new("TextButton", Top)
+    close.Size = UDim2.fromOffset(30,30)
+    close.Position = UDim2.new(1,-40,0,5)
+    close.Text = "X"
+    close.Font = Enum.Font.GothamBold
+    close.TextSize = 14
+    close.TextColor3 = Color3.new(1,1,1)
+    close.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+    local minimize = Instance.new("TextButton", Top)
+    minimize.Size = UDim2.fromOffset(30,30)
+    minimize.Position = UDim2.new(1,-75,0,5)
+    minimize.Text = "-"
+    minimize.Font = Enum.Font.GothamBold
+    minimize.TextSize = 14
+    minimize.TextColor3 = Color3.new(1,1,1)
+    minimize.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+    close.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    minimize.MouseButton1Click:Connect(function()
+        TweenService:Create(Main, TweenInfo.new(0.3), {Size = UDim2.fromScale(0.55,0)}):Play()
+    end)
+
+    return ScreenGui
 end
 
--- ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ROBLUE_GUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game.CoreGui
-
--- Main Window
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 520, 0, 330)
-Main.Position = UDim2.new(0.5, -260, 0.5, -165)
-Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
-Main.Active = true
-Main.Draggable = true
-
--- Top Bar
-local Top = Instance.new("Frame")
-Top.Size = UDim2.new(1,0,0,35)
-Top.BackgroundColor3 = Color3.fromRGB(25,25,25)
-Top.BorderSizePixel = 0
-Top.Parent = Main
-
--- Title
-local Title = Instance.new("TextLabel")
-Title.Text = "ROBLUE"
-Title.Size = UDim2.new(1, -90, 1, 0)
-Title.Position = UDim2.new(0,10,0,0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextColor3 = Color3.fromRGB(200,200,200)
-Title.BackgroundTransparency = 1
-Title.TextXAlignment = Left
-Title.Parent = Top
-
--- Minimize
-local Min = Instance.new("TextButton")
-Min.Text = "-"
-Min.Font = Enum.Font.GothamBold
-Min.TextSize = 18
-Min.Size = UDim2.new(0,30,0,25)
-Min.Position = UDim2.new(1,-65,0,5)
-Min.BackgroundColor3 = Color3.fromRGB(35,35,35)
-Min.TextColor3 = Color3.fromRGB(220,220,220)
-Min.Parent = Top
-
--- Close
-local Close = Instance.new("TextButton")
-Close.Text = "X"
-Close.Font = Enum.Font.GothamBold
-Close.TextSize = 14
-Close.Size = UDim2.new(0,30,0,25)
-Close.Position = UDim2.new(1,-35,0,5)
-Close.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Close.TextColor3 = Color3.fromRGB(255,90,90)
-Close.Parent = Top
-
--- Body
-local Body = Instance.new("Frame")
-Body.Position = UDim2.new(0,0,0,35)
-Body.Size = UDim2.new(1,0,1,-35)
-Body.BackgroundColor3 = Color3.fromRGB(18,18,18)
-Body.BorderSizePixel = 0
-Body.Parent = Main
-
--- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,130,1,0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(25,25,25)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Body
-
--- Content
-local Content = Instance.new("Frame")
-Content.Position = UDim2.new(0,130,0,0)
-Content.Size = UDim2.new(1,-130,1,0)
-Content.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Content.BorderSizePixel = 0
-Content.Parent = Body
-
--- Minimize Logic
-local minimized = false
-Min.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    Body.Visible = not minimized
-    Main.Size = minimized and UDim2.new(0,520,0,35) or UDim2.new(0,520,0,330)
-end)
-
--- Close Logic
-Close.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Retorna API (igual a antiga)
-local Library = {}
-return Library
+return Roblue
