@@ -1,263 +1,74 @@
--- ITALO LIB PATCHER (usa sua ITALO LIBRARY original, corrige drag e remove mover pulo)
--- Uso: cole inteiro no executor junto do seu hub (compatível KRNL/etc).
+
+-- ROBLUE UI LIBRARY
+-- Recreated to match original ITALO CLIENT visuals
+-- PC & Mobile compatible
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
+local Player = Players.LocalPlayer
 
--- 1) Carrega a sua library (mesmo loadstring que você enviou)
-local success, italoLib = pcall(function()
-    return loadstring(game:HttpGet(('https://raw.githubusercontent.com/onlyITALO/Library-ITALO/refs/heads/main/ITALO%20LIBRARY'), true))()
-end)
+local Roblue = {}
 
-if not success then
-    warn("Não foi possível carregar a ITALO LIBRARY automaticamente. Erro: ", italoLib)
-    return
-end
+function Roblue:CreateWindow(title)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ROBLUE"
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
 
--- some libraries return a table, some return nil and directly construct GUI. We'll handle ambos.
--- Espera curto para a GUI ser criada (a library normalmente cria o ScreenGui imediatamente)
-local function waitForGuiCreation(timeout)
-    timeout = timeout or 5
-    local t0 = tick()
-    while tick() - t0 < timeout do
-        -- tenta encontrar ScreenGui(s) com nomes prováveis
-        for _, g in ipairs(PlayerGui:GetChildren()) do
-            if g:IsA("ScreenGui") and g.Enabled ~= nil then
-                -- heurística: biblioteca personalizada normalmente tem "Italo", "ItaloLib", "ITALO" ou "Ray" no nome.
-                local n = tostring(g.Name):lower()
-                if n:match("italo") or n:match("library") or n:match("italo") or n:match("rayfield") or n:match("orion") then
-                    return g
-                end
-            end
-        end
-        -- se não encontrou heurístico, retorna o primeiro ScreenGui não padrão (não RobloxCore)
-        for _, g in ipairs(PlayerGui:GetChildren()) do
-            if g:IsA("ScreenGui") and not g.Name:match("Core") then
-                return g
-            end
-        end
-        wait(0.15)
-    end
-    return nil
-end
+    local Main = Instance.new("Frame")
+    Main.Size = UDim2.fromScale(0.55,0.6)
+    Main.Position = UDim2.fromScale(0.22,0.2)
+    Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    Main.BorderSizePixel = 0
+    Main.Parent = ScreenGui
+    Main.Active = true
+    Main.Draggable = true
 
-local guiRoot = waitForGuiCreation(6) -- aguarda até 6s
--- se não encontrou heurístico, tenta pegar qualquer ScreenGui novo (fallback)
-if not guiRoot then
-    for _, g in ipairs(PlayerGui:GetChildren()) do
-        if g:IsA("ScreenGui") then
-            guiRoot = g
-            break
-        end
-    end
-end
+    local UICorner = Instance.new("UICorner", Main)
+    UICorner.CornerRadius = UDim.new(0,16)
 
--- function util: remove mover pulo buttons by fuzzy text match
-local function removeJumpMoverButtons(root)
-    local count = 0
-    for _, btn in ipairs(root:GetDescendants()) do
-        if btn:IsA("TextButton") or btn:IsA("ImageButton") then
-            local txt = (btn.Text or ""):lower()
-            if txt:match("mover") and txt:match("p") then
-                -- ex: "Mover Botão de Pular", "Mover Botão do Pulo"
-                pcall(function() btn:Destroy() end)
-                count = count + 1
-            end
-            -- também verifica tooltip labels (TextLabel) que contenham precisamente a string
-            if (btn:IsA("TextLabel") and txt:match("mover") and txt:match("p")) then
-                pcall(function() btn:Destroy() end)
-                count = count + 1
-            end
-        end
-    end
-    return count
-end
+    local Top = Instance.new("Frame", Main)
+    Top.Size = UDim2.new(1,0,0,40)
+    Top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Top.BorderSizePixel = 0
 
--- function util: neutraliza propriedades Draggable/Active que bloqueiam clique
-local function neutralizeDraggables(root)
-    local modified = 0
-    for _, obj in ipairs(root:GetDescendants()) do
-        if obj:IsA("GuiObject") then
-            -- algumas libs definem .Draggable (legacy) or set Active = true; vamos neutralizar ambos
-            local ok, _ = pcall(function()
-                if obj:FindFirstChildWhichIsA then end
-            end)
-            -- Safe set: try to set Draggable = false if exists; set Active = false
-            local successSet = pcall(function()
-                if obj:GetAttribute then
-                    -- nothing here, just to maintain pcall safety
-                end
-                if obj:IsA("Frame") or obj:IsA("ImageLabel") or obj:IsA("ImageButton") or obj:IsA("TextLabel") then
-                    -- try disable legacy Draggable property
-                    if obj.Draggable ~= nil then
-                        pcall(function() obj.Draggable = false end)
-                        modified = modified + 1
-                    end
-                    -- disable Active so GuiService/GetGuiObjectsAtPosition can return correct targets
-                    if obj.Active ~= nil then
-                        pcall(function() obj.Active = false end)
-                        modified = modified + 1
-                    end
-                end
-            end)
-        end
-    end
-    return modified
-end
+    local titleLabel = Instance.new("TextLabel", Top)
+    titleLabel.Size = UDim2.new(1,-80,1,0)
+    titleLabel.Position = UDim2.new(0,15,0,0)
+    titleLabel.Text = title or "ROBLUE"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = Color3.new(1,1,1)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Procura TopBar(s) prováveis para re-implementar drag seguro
-local function findTopBarCandidates(root)
-    local candidates = {}
-    for _, obj in ipairs(root:GetDescendants()) do
-        if obj:IsA("Frame") or obj:IsA("TextLabel") or obj:IsA("ImageLabel") then
-            local name = tostring(obj.Name):lower()
-            if name:match("top") or name:match("title") or name:match("bar") or name:match("header") then
-                table.insert(candidates, obj)
-            end
-        end
-    end
-    -- se nenhum candidato, devolve primeiro Frame filho direto (fallback)
-    if #candidates == 0 then
-        for _, c in ipairs(root:GetChildren()) do
-            if c:IsA("Frame") then
-                table.insert(candidates, c)
-                break
-            end
-        end
-    end
-    return candidates
-end
+    local close = Instance.new("TextButton", Top)
+    close.Size = UDim2.fromOffset(30,30)
+    close.Position = UDim2.new(1,-40,0,5)
+    close.Text = "X"
+    close.Font = Enum.Font.GothamBold
+    close.TextSize = 14
+    close.TextColor3 = Color3.new(1,1,1)
+    close.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
--- Implementa drag seguro em um TopBar (não bloqueia cliques)
-local function makeSafeDragForTopBar(topBar, mainWindow)
-    if not topBar or not mainWindow then return end
-    -- evita múltiplas conexões
-    if topBar:GetAttribute("ItaloSafeDrag") then return end
-    topBar:SetAttribute("ItaloSafeDrag", true)
+    local minimize = Instance.new("TextButton", Top)
+    minimize.Size = UDim2.fromOffset(30,30)
+    minimize.Position = UDim2.new(1,-75,0,5)
+    minimize.Text = "-"
+    minimize.Font = Enum.Font.GothamBold
+    minimize.TextSize = 14
+    minimize.TextColor3 = Color3.new(1,1,1)
+    minimize.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-    local dragging = false
-    local dragStart = Vector2.new()
-    local startPos = mainWindow.Position
-
-    topBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- checa se o clique iniciou sobre um elemento interativo (dentro do mesmo ScreenGui)
-            local mx, my = UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y
-            local guiObjects = GuiService:GetGuiObjectsAtPosition(mx, my)
-            local clickedInteractive = false
-            for _, obj in ipairs(guiObjects) do
-                if obj and obj:IsDescendantOf(mainWindow) then
-                    if obj:IsA("TextButton") or obj:IsA("ImageButton") or obj:IsA("TextBox") or obj:IsA("ImageLabel") then
-                        clickedInteractive = true
-                        break
-                    end
-                end
-            end
-            if not clickedInteractive then
-                dragging = true
-                dragStart = UserInputService:GetMouseLocation()
-                startPos = mainWindow.Position
-            end
-        end
+    close.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
     end)
 
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = UserInputService:GetMouseLocation() - dragStart
-            local size = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
-            -- converte delta em mudança de scale
-            local newX = startPos.X.Scale + (delta.X / size.X)
-            local newY = startPos.Y.Scale + (delta.Y / size.Y)
-            mainWindow.Position = UDim2.new(newX, startPos.X.Offset, newY, startPos.Y.Offset)
-        end
+    minimize.MouseButton1Click:Connect(function()
+        TweenService:Create(Main, TweenInfo.new(0.3), {Size = UDim2.fromScale(0.55,0)}):Play()
     end)
 
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
+    return ScreenGui
 end
 
--- MAIN PATCH FLOW
-local function applyPatches(root)
-    if not root then return end
-    -- 1) remove botões de mover pulo
-    local removed = removeJumpMoverButtons(root)
-    -- 2) neutraliza draggables/active que bloqueiam clique
-    local modified = neutralizeDraggables(root)
-    -- 3) tenta encontrar janelas/frames "main" e aplicar safe drag
-    -- heurística: janela principal geralmente é Frame que contém muitos botões e tem UICorner/UIPadding
-    local mains = {}
-    for _, f in ipairs(root:GetDescendants()) do
-        if f:IsA("Frame") then
-            -- heurística: frame com muitos botões filhos
-            local btnCount = 0
-            for _,c in ipairs(f:GetDescendants()) do
-                if c:IsA("TextButton") or c:IsA("ImageButton") then btnCount = btnCount + 1 end
-            end
-            if btnCount >= 3 then
-                table.insert(mains, f)
-            end
-        end
-    end
-    -- fallback: qualquer top level Frame child do ScreenGui
-    if #mains == 0 then
-        for _,c in ipairs(root:GetChildren()) do
-            if c:IsA("Frame") then
-                table.insert(mains, c)
-                break
-            end
-        end
-    end
-
-    -- para cada main, encontra topBar candidates e aplica safe drag
-    for _, mainFrame in ipairs(mains) do
-        local topBars = findTopBarCandidates(mainFrame)
-        for _, tb in ipairs(topBars) do
-            pcall(function() makeSafeDragForTopBar(tb, mainFrame) end)
-        end
-    end
-
-    return {removed = removed, modified = modified, mainsFound = #mains}
-end
-
--- Se guiRoot já existente, aplica patch; caso contrário, aguarda criação adicional por um curto período
-local results = applyPatches(guiRoot)
-
--- Monitora criações futuras (caso a library refaça a GUI depois)
-local conn
-conn = PlayerGui.ChildAdded:Connect(function(child)
-    -- se nova ScreenGui criada pela library, aplica patches nela também
-    if child:IsA("ScreenGui") then
-        wait(0.15)
-        applyPatches(child)
-    end
-end)
-
--- Mensagem de confirmação via Orion (se existir) ou print fallback
-pcall(function()
-    if italoLib and type(italoLib) == "table" and italoLib.MakeNotification then
-        italoLib:MakeNotification({
-            Name = "PATCH ITALO",
-            Content = "Correção aplicada: arraste seguro ativado e mover pulo removido.",
-            Time = 6
-        })
-    else
-        print("PATCH ITALO: Correção aplicada — arraste seguro ativado e mover pulo removido.")
-    end
-end)
-
--- extra: limpa event listener quando gui for destruída (boa prática)
-PlayerGui.DescendantRemoving:Connect(function(desc)
-    if desc == guiRoot then
-        if conn then conn:Disconnect() end
-    end
-end)
-
--- fim do patcher
-print("Italo LIB patcher finalizado.")
+return Roblue
