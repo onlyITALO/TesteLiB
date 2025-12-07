@@ -28,13 +28,17 @@ local OrionLib = {
 --Feather Icons https://github.com/evoincorp/lucideblox/tree/master/src/modules/util - Created by 7kayoh
 local Icons = {}
 
-local Success, Response = pcall(function()
-	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
-end)
+-- [[ PATCH DE ESTABILIDADE CRÍTICA: Removendo chamada de rede para carregar ícones ]]
+-- Essa é a parte mais instável do script em diferentes executores.
+-- Os ícones não serão carregados, mas o script não deve quebrar aqui.
 
-if not Success then
-	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
-end	
+-- local Success, Response = pcall(function()
+-- 	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
+-- end)
+
+-- if not Success then
+-- 	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
+-- end	
 
 local function GetIcon(IconName)
 	if Icons[IconName] ~= nil then
@@ -45,9 +49,9 @@ local function GetIcon(IconName)
 end   
 
 local Orion = Instance.new("ScreenGui")
-guiRH = Instance.new("ScreenGui",Orion)
-nextb = Instance.new("ImageButton", guiRH)
-gui = Instance.new("UICorner", nextb)
+local guiRH = Instance.new("ScreenGui",Orion) -- CORREÇÃO: Variável local
+local nextb = Instance.new("ImageButton", guiRH) -- CORREÇÃO: Variável local
+local gui = Instance.new("UICorner", nextb) -- CORREÇÃO: Variável local
 
 Orion.Name = "ITALO CLIENT <Orion Lib>"
 
@@ -66,19 +70,17 @@ nextb.MouseButton1Down:connect(function()
 end)
 
 -- *********************************************************************************
--- PATCH DE ESTABILIDADE CRÍTICA (Linhas 59-79)
--- Garante que o Hub abra, mesmo que 'gethui' não esteja disponível
+-- PATCH DE ESTABILIDADE CRÍTICA (Mantido para garantir que não use 'gethui')
 -- *********************************************************************************
 if syn and syn.protect_gui then
-	pcall(syn.protect_gui, Orion) -- Usando pcall para a função de proteção para maior segurança
+	pcall(syn.protect_gui, Orion) 
 	Orion.Parent = game.CoreGui
 else
-	-- Força o parent para CoreGui se 'syn' não estiver presente,
-    -- evitando o crash fatal ao chamar uma 'gethui()' indefinida.
-	Orion.Parent = game.CoreGui
+	-- Força o parent para CoreGui
+	Orion.Parent = game.CoreGui 
 end
 
--- Limpeza de GUIs antigas (também forçando CoreGui para estabilidade)
+-- Limpeza de GUIs antigas (usando CoreGui para estabilidade)
 for _, Interface in ipairs(game.CoreGui:GetChildren()) do
     if Interface.Name == Orion.Name and Interface ~= Orion then
         Interface:Destroy()
