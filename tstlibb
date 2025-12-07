@@ -33,7 +33,8 @@ local Success, Response = pcall(function()
 end)
 
 if not Success then
-	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. tostring(Response) .. "\n")
+	-- CORREÇÃO APLICADA: Substituindo a quebra de linha bruta por '\n'
+	warn("\nOrion Library - Failed to load Feather Icons.\nError code: " .. tostring(Response) .. "\n")
 end	
 
 local function GetIcon(IconName)
