@@ -719,19 +719,20 @@ UDim2.new(0, 18, 0, 18),
 		})
 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-        -- Revertendo para wait() para o timing de inicialização
-		wait(0.8) 
+        -- CORREÇÃO: Usando task.wait() para evitar travamento do script principal
+		task.wait(0.8) 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
-		wait(0.3)
+		task.wait(0.3)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		wait(2)
+		task.wait(2)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
 		MainWindow.Visible = true
 		LoadSequenceLogo:Destroy()
 		LoadSequenceText:Destroy()
 	end 
 
-    -- CORREÇÃO PRINCIPAL: Garantindo que LoadSequence é chamado (sem task.spawn) ou a janela é visível
+    -- A chamada é feita de forma síncrona (blocante) para garantir a ordem da animação,
+    -- confiando no task.wait() para evitar o travamento total.
 	if WindowConfig.IntroEnabled then
 		LoadSequence()
 	else
@@ -919,6 +920,7 @@ UDim2.new(1, -30, 0, 7),
 
 				AddConnection(Click.InputBegan, function(Input)
                     if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        -- Aqui mantemos o Callback para InputBegan
                         ButtonConfig.Callback()
                         SaveCfg(game.GameId)
                     end
