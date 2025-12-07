@@ -1,190 +1,136 @@
--- ROBLUE LIBRARY (XENO SAFE)
--- Orion / ITALO compatible
+-- ROBLUE UI LIBRARY (Orion / ITALO Compatible)
+-- PC + Mobile + Xeno
+-- API: MakeWindow > MakeTab > AddButton / AddParagraph
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local Roblue = {}
 
--- cleanup old instances
-local old = PlayerGui:FindFirstChild("ROBLUE_GUI")
-if old then old:Destroy() end
-
-local Library = {}
-Library.__index = Library
-
--- Notification
-function Library:MakeNotification(data)
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "ROBLUE_NOTIFY"
-    gui.Parent = PlayerGui
-
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.fromOffset(320, 60)
-    frame.Position = UDim2.new(1, -340, 0, 20)
-    frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    frame.BorderSizePixel = 0
-
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
-
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1,-20,0,22)
-    title.Position = UDim2.fromOffset(10,6)
-    title.BackgroundTransparency = 1
-    title.Text = data.Name or "Notification"
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
-    title.TextColor3 = Color3.fromRGB(255,255,255)
-    title.TextXAlignment = Left
-
-    local content = Instance.new("TextLabel", frame)
-    content.Size = UDim2.new(1,-20,0,26)
-    content.Position = UDim2.fromOffset(10,28)
-    content.BackgroundTransparency = 1
-    content.TextWrapped = true
-    content.Text = data.Content or ""
-    content.Font = Enum.Font.Gotham
-    content.TextSize = 13
-    content.TextColor3 = Color3.fromRGB(220,220,220)
-    content.TextXAlignment = Left
-
-    TweenService:Create(frame, TweenInfo.new(0.3), {
-        Position = UDim2.new(1, -340, 0, 20)
-    }):Play()
-
-    task.delay(data.Time or 4, function()
-        gui:Destroy()
-    end)
+-- =========================
+-- NOTIFICATION
+-- =========================
+function Roblue:MakeNotification(cfg)
+	cfg = cfg or {}
+	warn("[ROBLUE]", cfg.Name or "", cfg.Content or "")
 end
 
--- Window
-function Library:MakeWindow(config)
-    local GUI = Instance.new("ScreenGui")
-    GUI.Name = "ROBLUE_GUI"
-    GUI.Parent = PlayerGui
+-- =========================
+-- WINDOW
+-- =========================
+function Roblue:MakeWindow(cfg)
+	cfg = cfg or {}
 
-    local Main = Instance.new("Frame", GUI)
-    Main.Size = UDim2.fromOffset(620, 420)
-    Main.Position = UDim2.fromScale(0.5,0.5)
-    Main.AnchorPoint = Vector2.new(0.5,0.5)
-    Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    Main.BorderSizePixel = 0
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "ROBLUE_GUI"
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	gui.ResetOnSpawn = false
 
-    -- Top
-    local Top = Instance.new("Frame", Main)
-    Top.Size = UDim2.new(1,0,0,40)
-    Top.BackgroundColor3 = Color3.fromRGB(24,24,24)
-    Top.BorderSizePixel = 0
-    Instance.new("UICorner", Top).CornerRadius = UDim.new(0,12)
+	local main = Instance.new("Frame", gui)
+	main.Size = UDim2.fromOffset(650, 420)
+	main.Position = UDim2.fromScale(0.5, 0.5)
+	main.AnchorPoint = Vector2.new(0.5, 0.5)
+	main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+	main.Active = true
+	main.Draggable = true
 
-    local Title = Instance.new("TextLabel", Top)
-    Title.Size = UDim2.new(1,-60,1,0)
-    Title.Position = UDim2.fromOffset(14,0)
-    Title.BackgroundTransparency = 1
-    Title.Text = config.Name or "Roblue"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    Title.TextColor3 = Color3.fromRGB(255,255,255)
-    Title.TextXAlignment = Left
+	Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 
-    local Close = Instance.new("TextButton", Top)
-    Close.Size = UDim2.fromOffset(30,24)
-    Close.Position = UDim2.new(1,-38,0,8)
-    Close.Text = "X"
-    Close.Font = Enum.Font.GothamBold
-    Close.TextSize = 14
-    Close.TextColor3 = Color3.fromRGB(255,255,255)
-    Close.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    Close.BorderSizePixel = 0
-    Instance.new("UICorner", Close).CornerRadius = UDim.new(0,6)
+	local top = Instance.new("TextLabel", main)
+	top.Size = UDim2.new(1,0,0,40)
+	top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	top.Text = cfg.Name or "ROBLUE"
+	top.TextColor3 = Color3.new(1,1,1)
+	top.Font = Enum.Font.GothamBold
+	top.TextSize = 16
 
-    Close.MouseButton1Click:Connect(function()
-        GUI:Destroy()
-    end)
+	local sidebar = Instance.new("Frame", main)
+	sidebar.Position = UDim2.new(0,0,0,40)
+	sidebar.Size = UDim2.new(0,150,1,-40)
+	sidebar.BackgroundColor3 = Color3.fromRGB(22,22,22)
 
-    -- Sidebar
-    local Sidebar = Instance.new("Frame", Main)
-    Sidebar.Position = UDim2.fromOffset(0,40)
-    Sidebar.Size = UDim2.fromOffset(140,380)
-    Sidebar.BackgroundColor3 = Color3.fromRGB(22,22,22)
-    Sidebar.BorderSizePixel = 0
+	local content = Instance.new("Frame", main)
+	content.Position = UDim2.new(0,150,0,40)
+	content.Size = UDim2.new(1,-150,1,-40)
+	content.BackgroundTransparency = 1
 
-    -- Content
-    local Content = Instance.new("Frame", Main)
-    Content.Position = UDim2.fromOffset(140,40)
-    Content.Size = UDim2.fromOffset(480,380)
-    Content.BackgroundTransparency = 1
+	local UIList = Instance.new("UIListLayout", sidebar)
+	UIList.Padding = UDim.new(0,6)
 
-    local Tabs = {}
-    local CurrentTab
+	local Window = {}
 
-    local Window = {}
+	-- =========================
+	-- TAB
+	-- =========================
+	function Window:MakeTab(tabCfg)
+		tabCfg = tabCfg or {}
 
-    function Window:MakeTab(tab)
-        local Button = Instance.new("TextButton", Sidebar)
-        Button.Size = UDim2.new(1,0,0,40)
-        Button.BackgroundTransparency = 1
-        Button.Text = tab.Name
-        Button.Font = Enum.Font.Gotham
-        Button.TextSize = 14
-        Button.TextColor3 = Color3.fromRGB(230,230,230)
+		local tabFrame = Instance.new("Frame", content)
+		tabFrame.Size = UDim2.new(1,0,1,0)
+		tabFrame.Visible = false
+		tabFrame.BackgroundTransparency = 1
 
-        local Page = Instance.new("Frame", Content)
-        Page.Size = UDim2.new(1,0,1,0)
-        Page.Visible = false
-        Page.BackgroundTransparency = 1
+		local layout = Instance.new("UIListLayout", tabFrame)
+		layout.Padding = UDim.new(0,8)
 
-        local Layout = Instance.new("UIListLayout", Page)
-        Layout.Padding = UDim.new(0,8)
+		local tabButton = Instance.new("TextButton", sidebar)
+		tabButton.Size = UDim2.new(1,-10,0,40)
+		tabButton.Text = tabCfg.Name or "Tab"
+		tabButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
+		tabButton.TextColor3 = Color3.new(1,1,1)
+		tabButton.Font = Enum.Font.Gotham
+		tabButton.TextSize = 14
+		Instance.new("UICorner", tabButton)
 
-        Button.MouseButton1Click:Connect(function()
-            if CurrentTab then CurrentTab.Visible = false end
-            Page.Visible = true
-            CurrentTab = Page
-        end)
+		tabButton.MouseButton1Click:Connect(function()
+			for _,v in ipairs(content:GetChildren()) do
+				if v:IsA("Frame") then
+					v.Visible = false
+				end
+			end
+			tabFrame.Visible = true
+		end)
 
-        if not CurrentTab then
-            Page.Visible = true
-            CurrentTab = Page
-        end
+		local Tab = {}
 
-        local Tab = {}
+		-- =========================
+		-- BUTTON
+		-- =========================
+		function Tab:AddButton(btnCfg)
+			local btn = Instance.new("TextButton", tabFrame)
+			btn.Size = UDim2.new(1,-10,0,40)
+			btn.Text = btnCfg.Name or "Button"
+			btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.Font = Enum.Font.GothamBold
+			btn.TextSize = 14
+			Instance.new("UICorner", btn)
 
-        function Tab:AddButton(btn)
-            local B = Instance.new("TextButton", Page)
-            B.Size = UDim2.new(1,0,0,40)
-            B.BackgroundColor3 = Color3.fromRGB(38,38,38)
-            B.Text = btn.Name
-            B.TextColor3 = Color3.fromRGB(255,255,255)
-            B.Font = Enum.Font.GothamBold
-            B.TextSize = 14
-            B.BorderSizePixel = 0
-            Instance.new("UICorner", B).CornerRadius = UDim.new(0,8)
+			btn.MouseButton1Click:Connect(function()
+				pcall(btnCfg.Callback)
+			end)
+		end
 
-            B.MouseButton1Click:Connect(function()
-                pcall(btn.Callback)
-            end)
-        end
+		-- =========================
+		-- PARAGRAPH
+		-- =========================
+		function Tab:AddParagraph(title, text)
+			local lbl = Instance.new("TextLabel", tabFrame)
+			lbl.Size = UDim2.new(1,-10,0,60)
+			lbl.TextWrapped = true
+			lbl.TextYAlignment = Top
+			lbl.BackgroundTransparency = 1
+			lbl.Text = (title or "") .. "\n" .. (text or "")
+			lbl.TextColor3 = Color3.new(1,1,1)
+			lbl.Font = Enum.Font.Gotham
+			lbl.TextSize = 13
+		end
 
-        function Tab:AddParagraph(title,text)
-            local T = Instance.new("TextLabel", Page)
-            T.Size = UDim2.new(1,0,0,50)
-            T.TextWrapped = true
-            T.BackgroundTransparency = 1
-            T.Text = title .. "\n" .. text
-            T.TextColor3 = Color3.fromRGB(220,220,220)
-            T.Font = Enum.Font.Gotham
-            T.TextSize = 13
-            T.TextXAlignment = Left
-            T.TextYAlignment = Top
-        end
+		return Tab
+	end
 
-        return Tab
-    end
-
-    return Window
+	return Window
 end
 
-return Library
+return Roblue
