@@ -41,7 +41,7 @@ local function saveConfig(name)
     -- Implement saving logic here if needed
 end
 
--- Draggable Function (CORRIGIDO: Agora só arrasta pela Titlebar)
+-- Draggable Function (CORREÇÃO DE CLIQUE/ARRASTO MANTIDA)
 local function Draggable(Window, Config)
     local dragging = false
     local dragInput
@@ -49,7 +49,7 @@ local function Draggable(Window, Config)
     local startPos
 
     Window.Titlebar.InputBegan:Connect(function(input)
-        -- Verifica se a entrada é MouseButton1 (PC) ou Touch (Mobile) E se o clique foi na Titlebar
+        -- Apenas inicia o arrasto se o clique/toque for na Titlebar
         if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and input.Target:IsDescendantOf(Window.Titlebar) then
             dragging = true
             dragStart = input.Position
@@ -80,12 +80,12 @@ local function Draggable(Window, Config)
 end
 -- End Draggable Function
 
--- Notification System (Restaurado para o seu código original)
+-- Notification System (CORREÇÃO: Garantindo o Reposicionamento e Animação suaves)
 local function MakeNotification(data)
     local notification = Instance.new("Frame")
     notification.Size = UDim2.new(0, 250, 0, 50)
     notification.AnchorPoint = Vector2.new(1, 1)
-    notification.Position = UDim2.new(1, 260, 1, -10) -- Posição inicial fora da tela
+    notification.Position = UDim2.new(1, 260, 1, -10) -- Inicia fora da tela
     notification.BackgroundTransparency = 0
     notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     notification.BorderSizePixel = 0
@@ -133,27 +133,28 @@ local function MakeNotification(data)
     table.insert(notifications, notification)
     
     local function repositionNotifications()
-        local yOffset = -10
+        local yOffset = 0
         for i, notif in ipairs(notifications) do
-            local newY = ScreenGui.AbsoluteSize.Y - yOffset - notif.AbsoluteSize.Y
-            TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(1, -10, 0, newY)}):Play()
+            local targetY = ScreenGui.AbsoluteSize.Y - 10 - yOffset - notif.AbsoluteSize.Y
+            TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(1, -10, 0, targetY)}):Play()
             yOffset = yOffset + notif.AbsoluteSize.Y + 10
         end
     end
 
+    -- Inicializa o posicionamento
     repositionNotifications()
     
-    -- Animação de entrada
-    TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(1, -10, notification.Position.Y.Scale, notification.Position.Y.Offset)}):Play()
-
     -- Timeout e Destruição
     local timeToWait = data.Time or 5
     delay(timeToWait, function()
         TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(1, 260, notification.Position.Y.Scale, notification.Position.Y.Offset)}):Play()
         delay(0.3, function()
-            table.remove(notifications, table.find(notifications, notification))
+            local index = table.find(notifications, notification)
+            if index then
+                table.remove(notifications, index)
+            end
             notification:Destroy()
-            repositionNotifications()
+            repositionNotifications() -- Reposiciona após remover
         end)
     end)
 end
@@ -171,7 +172,8 @@ local function MakeWindow(data)
         SaveConfig = data.SaveConfig or false,
         ConfigFolder = data.ConfigFolder,
         IntroEnabled = data.IntroEnabled or false,
-        DefaultPosition = data.DefaultPosition or UDim2.new(0.5, -250, 0.5, -200)
+        DefaultPosition = data.DefaultPosition or UDim2.new(0.5, -250, 0.5, -200),
+        DefaultSize = UDim2.new(0, 500, 0, 400) -- Adicionado para controle de minimização
     }
 
     if Config.SaveConfig then
@@ -183,7 +185,7 @@ local function MakeWindow(data)
     end
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 500, 0, 400)
+    mainFrame.Size = Config.DefaultSize
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.Position = Config.DefaultPosition 
     mainFrame.BackgroundTransparency = 0
@@ -201,7 +203,7 @@ local function MakeWindow(data)
     Titlebar.Parent = mainFrame
     
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -60, 1, 0) -- Ajustado para caber os botões
+    TitleLabel.Size = UDim2.new(1, -60, 1, 0) 
     TitleLabel.Position = UDim2.new(0, 10, 0, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Font = Enum.Font.SourceSans
@@ -212,7 +214,7 @@ local function MakeWindow(data)
     TitleLabel.TextWrapped = true
     TitleLabel.Parent = Titlebar
     
-    -- Botões de Controle (Close e Minimize/Maximize)
+    -- Botões de Controle 
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 30, 1, 0)
     CloseButton.Position = UDim2.new(1, -30, 0, 0)
@@ -226,10 +228,8 @@ local function MakeWindow(data)
     CloseButton.TextSize = 18
     CloseButton.Parent = Titlebar
     
-    -- CORREÇÃO: Lógica para Fechar a Janela
     CloseButton.MouseButton1Click:Connect(function()
-        mainFrame.Visible = false
-        -- Também remove do CoreGui para descarregar o script
+        -- Lógica de fechar/destruir a GUI (o "X" fecha completamente)
         ScreenGui:Destroy()
     end)
     
@@ -246,20 +246,8 @@ local function MakeWindow(data)
     MinimizeButton.TextSize = 18
     MinimizeButton.Parent = Titlebar
     
-    -- Lógica de Minimizar
+    -- CORREÇÃO: Lógica de Minimizar/Maximizar Suave
     local minimized = false
-    MinimizeButton.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        if minimized then
-            TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 30)}):Play()
-            MinimizeButton.Text = "☐" -- Mudar para um símbolo de maximizar
-        else
-            TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 400)}):Play()
-            MinimizeButton.Text = "-"
-        end
-    end)
-
-
     local TabContainer = Instance.new("Frame")
     TabContainer.Size = UDim2.new(0.2, 0, 1, -30)
     TabContainer.Position = UDim2.new(0, 0, 0, 30)
@@ -268,12 +256,6 @@ local function MakeWindow(data)
     TabContainer.BorderSizePixel = 0
     TabContainer.Name = "TabContainer"
     TabContainer.Parent = mainFrame
-    
-    local TabList = Instance.new("UIListLayout")
-    TabList.Padding = UDim.new(0, 5)
-    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    TabList.VerticalAlignment = Enum.VerticalAlignment.Top
-    TabList.Parent = TabContainer
 
     local ContentContainer = Instance.new("Frame")
     ContentContainer.Size = UDim2.new(0.8, 0, 1, -30)
@@ -283,6 +265,31 @@ local function MakeWindow(data)
     ContentContainer.BorderSizePixel = 0
     ContentContainer.Name = "ContentContainer"
     ContentContainer.Parent = mainFrame
+    
+    MinimizeButton.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            -- Minimiza: Reduz o tamanho da janela para apenas a Titlebar
+            TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(Config.DefaultSize.X.Scale, Config.DefaultSize.X.Offset, 0, 30)}):Play()
+            TabContainer.Visible = false
+            ContentContainer.Visible = false
+            MinimizeButton.Text = "☐" 
+        else
+            -- Maximiza: Retorna ao tamanho original
+            TabContainer.Visible = true
+            ContentContainer.Visible = true
+            TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Config.DefaultSize}):Play()
+            MinimizeButton.Text = "-"
+        end
+    end)
+
+
+    
+    local TabList = Instance.new("UIListLayout")
+    TabList.Padding = UDim.new(0, 5)
+    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    TabList.VerticalAlignment = Enum.VerticalAlignment.Top
+    TabList.Parent = TabContainer
 
     -- Dragging
     Draggable({Frame = mainFrame, Titlebar = Titlebar}, Config)
@@ -365,7 +372,6 @@ local function MakeWindow(data)
             TextPadding.PaddingLeft = UDim.new(0, 5)
             TextPadding.Parent = Button
 
-            -- Event connection (Este estava correto e permanece, garantido pelo fix no Draggable)
             Button.MouseButton1Click:Connect(function()
                 if data.Callback then
                     data.Callback()
@@ -412,7 +418,7 @@ local function MakeWindow(data)
             return Frame
         end
         
-        -- Add Toggle (Restaurado para o seu código original)
+        -- Add Toggle
         function Tab:AddToggle(data)
             local ToggleFrame = Instance.new("TextButton") 
             ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
@@ -466,7 +472,7 @@ local function MakeWindow(data)
             return ToggleFrame
         end
         
-        -- Add Slider (Restaurado para o seu código original)
+        -- Add Slider
         function Tab:AddSlider(data)
             local Frame = Instance.new("Frame")
             Frame.Size = UDim2.new(1, 0, 0, 45)
