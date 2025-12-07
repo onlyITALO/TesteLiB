@@ -105,7 +105,7 @@ end
 
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		wait()
+		task.wait()
 	end
 
 	for _, Connection in next, OrionLib.Connections do
@@ -233,7 +233,7 @@ local function LoadCfg(Config)
 	local Data = HttpService:JSONDecode(Config)
 	table.foreach(Data, function(a,b)
 		if OrionLib.Flags[a] then
-			spawn(function() 
+			task.spawn(function() 
 				if OrionLib.Flags[a].Type == "Colorpicker" then
 					OrionLib.Flags[a]:Set(UnpackColor(b))
 				else
@@ -247,6 +247,7 @@ local function LoadCfg(Config)
 end
 
 local function SaveCfg(Name)
+	if not OrionLib.SaveCfg then return end -- Adicionado para evitar erro se SaveCfg for false
 	local Data = {}
 	for i,v in pairs(OrionLib.Flags) do
 		if v.Save then
@@ -257,7 +258,9 @@ local function SaveCfg(Name)
 			end
 		end	
 	end
-	writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+	pcall(function()
+		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+	end)
 end
 
 local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2,Enum.UserInputType.MouseButton3}
@@ -405,7 +408,7 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 })
 
 function OrionLib:MakeNotification(NotificationConfig)
-	spawn(function()
+	task.spawn(function()
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = NotificationConfig.Content or "Test"
 		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://4384403532"
@@ -450,17 +453,17 @@ function OrionLib:MakeNotification(NotificationConfig)
 
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
-		wait(NotificationConfig.Time - 0.88)
+		task.wait(NotificationConfig.Time - 0.88)
 		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
-		wait(0.3)
+		task.wait(0.3)
 		TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
 		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
 		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
-		wait(0.05)
+		task.wait(0.05)
 
 		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
-		wait(1.35)
+		task.wait(1.35)
 		NotificationFrame:Destroy()
 	end)
 end
@@ -648,7 +651,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		if Minimized then
 			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 615, 0, 344)}):Play()
 			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
-			wait(.02)
+			task.wait(.02)
 			MainWindow.ClipsDescendants = false
 			WindowStuff.Visible = true
 			WindowTopBarLine.Visible = true
@@ -658,7 +661,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
 
 			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, WindowName.TextBounds.X + 140, 0, 50)}):Play()
-			wait(0.1)
+			task.wait(0.1)
 			WindowStuff.Visible = false	
 		end
 		Minimized = not Minimized    
@@ -691,11 +694,11 @@ function OrionLib:MakeWindow(WindowConfig)
 		})
 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-		wait(0.8)
+		task.wait(0.8)
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
-		wait(0.3)
+		task.wait(0.3)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-		wait(2)
+		task.wait(2)
 		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
 		MainWindow.Visible = true
 		LoadSequenceLogo:Destroy()
@@ -826,7 +829,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
-				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
+				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("TextBounds"), function()
 					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
 					ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
 				end)
@@ -1223,7 +1226,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Click
 				}), "Second")
 
-				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
+				AddConnection(BindBox.Value:GetPropertyChangedSignal("TextBounds"), function()
 					--BindBox.Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)
 					TweenService:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)}):Play()
 				end)
@@ -1368,28 +1371,56 @@ function OrionLib:MakeWindow(WindowConfig)
 				local ColorH, ColorS, ColorV = 1, 1, 1
 				local Colorpicker = {Value = ColorpickerConfig.Default, Toggled = false, Type = "Colorpicker", Save = ColorpickerConfig.Save}
 				
+				-- Função local para atualizar a UI do Colorpicker
+				local function UpdateColorPickerUI()
+					local H, S, V = Color3.toHSV(Colorpicker.Value)
+					ColorH, ColorS, ColorV = H, S, V
+					
+					-- Atualiza os seletores de posição
+					local ColorX = S
+					local ColorY = 1 - V
+					
+					-- Garante que os objetos existem antes de tentar acessá-los
+					if ColorpickerFrame:FindFirstChild("Color") then
+						ColorpickerFrame.Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+						ColorpickerFrame.Color.ColorSelection.Position = UDim2.new(ColorX, 0, ColorY, 0)
+					end
+					
+					if ColorpickerFrame:FindFirstChild("Hue") then
+						ColorpickerFrame.Hue.HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH, 0)
+					end
+					
+					if ColorpickerFrame:FindFirstChild("F") and ColorpickerFrame.F:FindFirstChild("ColorpickerBox") then
+						ColorpickerFrame.F.ColorpickerBox.BackgroundColor3 = Colorpicker.Value
+					end
+					
+					ColorpickerConfig.Callback(Colorpicker.Value)
+					SaveCfg(game.GameId)
+				end
+
 				local ColorSelection = Create("ImageLabel", {
 					Size = UDim2.new(0, 18, 0, 18),
-					Position = UDim2.new(select(3, Color3.toHSV(Colorpicker.Value))),
 					ScaleType = Enum.ScaleType.Fit,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
-					Image = "http://www.roblox.com/asset/?id=4805639000"
+					Image = "http://www.roblox.com/asset/?id=4805639000",
+					Name = "ColorSelection" -- Nome para fácil acesso
 				})
 
 				local HueSelection = Create("ImageLabel", {
 					Size = UDim2.new(0, 18, 0, 18),
-					Position = UDim2.new(0.5, 0, 1 - select(1, Color3.toHSV(Colorpicker.Value))),
 					ScaleType = Enum.ScaleType.Fit,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					BackgroundTransparency = 1,
-					Image = "http://www.roblox.com/asset/?id=4805639000"
+					Image = "http://www.roblox.com/asset/?id=4805639000",
+					Name = "HueSelection" -- Nome para fácil acesso
 				})
 
 				local Color = Create("ImageLabel", {
 					Size = UDim2.new(1, -25, 1, 0),
 					Visible = false,
-					Image = "rbxassetid://4155801252"
+					Image = "rbxassetid://4155801252",
+					Name = "Color" -- Nome para fácil acesso
 				}, {
 					Create("UICorner", {CornerRadius = UDim.new(0, 5)}),
 					ColorSelection
@@ -1398,7 +1429,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				local Hue = Create("Frame", {
 					Size = UDim2.new(0, 20, 1, 0),
 					Position = UDim2.new(1, -20, 0, 0),
-					Visible = false
+					Visible = false,
+					Name = "Hue" -- Nome para fácil acesso
 				}, {
 					Create("UIGradient", {
 						Rotation = 270,
@@ -1423,7 +1455,8 @@ function OrionLib:MakeWindow(WindowConfig)
 				local ColorpickerBox = AddThemeObject(Create("Frame", {
 					Size = UDim2.new(0, 24, 0, 24),
 					Position = UDim2.new(1, -12, 0.5, 0),
-					AnchorPoint = Vector2.new(1, 0.5)
+					AnchorPoint = Vector2.new(1, 0.5),
+					Name = "ColorpickerBox"
 				}), "Main")
 
 				local ColorpickerFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
@@ -1453,17 +1486,17 @@ function OrionLib:MakeWindow(WindowConfig)
 				local ColorInput = nil
 				local HueInput = nil
 
-				local function UpdateColorPicker()
-					ColorpickerBox.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
-					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
-					Colorpicker:Set(ColorpickerBox.BackgroundColor3)
-					ColorpickerConfig.Callback(ColorpickerBox.BackgroundColor3)
-					SaveCfg(game.GameId)
+				-- Função para ser chamada quando o valor do colorpicker é alterado (externamente ou internamente)
+				function Colorpicker:Set(Color)
+					Colorpicker.Value = Color or Colorpicker.Value
+					local H, S, V = Color3.toHSV(Colorpicker.Value)
+					ColorH = H
+					ColorS = S
+					ColorV = V
+					
+					-- Força a atualização da UI
+					UpdateColorPickerUI() 
 				end
-
-				ColorH = 1 - (math.clamp(HueSelection.AbsolutePosition.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
-				ColorS = (math.clamp(ColorSelection.AbsolutePosition.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) / Color.AbsoluteSize.X)
-				ColorV = 1 - (math.clamp(ColorSelection.AbsolutePosition.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y)
 
 				AddConnection(Color.InputBegan, function(input) 
 					if input.UserInputType == Enum.UserInputType.MouseButton1 then 
@@ -1474,7 +1507,8 @@ function OrionLib:MakeWindow(WindowConfig)
 							ColorS = ColorX
 							ColorV = 1 - ColorY
 							ColorSelection.Position = UDim2.new(ColorX, 0, ColorY, 0)
-							UpdateColorPicker()
+							Colorpicker.Value = Color3.fromHSV(ColorH, ColorS, ColorV) -- Atualiza o valor
+							UpdateColorPickerUI()
 						end)
 					end
 				end)
@@ -1492,7 +1526,8 @@ function OrionLib:MakeWindow(WindowConfig)
 							local HueY = (math.clamp(UserInputService:GetMouseLocation().Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
 							ColorH = 1 - HueY
 							HueSelection.Position = UDim2.new(0.5, 0, HueY, 0)
-							UpdateColorPicker()
+							Colorpicker.Value = Color3.fromHSV(ColorH, ColorS, ColorV) -- Atualiza o valor
+							UpdateColorPickerUI()
 						end)
 					end
 				end)
@@ -1508,22 +1543,14 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(ColorpickerFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = Colorpicker.Toggled and UDim2.new(1, 0, 0, 148) or UDim2.new(1, 0, 0, 38)}):Play()
 					Color.Visible = Colorpicker.Toggled
 					Hue.Visible = Colorpicker.Toggled
-					ColorpickerFrame.F.Line.Visible = Colorpicker.Toggled
+					-- A linha da barra superior visível só faz sentido se existir uma "F" com essa linha dentro
+					local TopBar = ColorpickerFrame:FindFirstChild("F")
+					if TopBar and TopBar:FindFirstChild("Line") then
+						TopBar.Line.Visible = Colorpicker.Toggled
+					end
 				end)
 				
-				function Colorpicker:Set(Color)
-					Colorpicker.Value = Color or Colorpicker.Value
-					local H, S, V = Color3.toHSV(Colorpicker.Value)
-					ColorH = H
-					ColorS = S
-					ColorV = V
-					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
-					ColorpickerBox.BackgroundColor3 = Color
-					ColorSelection.Position = UDim2.new(ColorS, 0, 1 - ColorV, 0)
-					HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH, 0)
-					ColorpickerConfig.Callback(Colorpicker.Value)
-				end
-
+				-- Inicializa o Colorpicker com o valor padrão e atualiza a UI
 				Colorpicker:Set(ColorpickerConfig.Default)
 
 				if ColorpickerConfig.Flag then
@@ -1532,8 +1559,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				
 				return Colorpicker
 			end
-
-			-- Fim da correção: A função Colorpicker agora está completa.
 
 			if TabConfig.PremiumOnly and WindowConfig.HidePremium then
 				for i,v in pairs(ElementFunction) do
