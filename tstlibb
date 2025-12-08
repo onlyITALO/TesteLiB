@@ -1703,5 +1703,3 @@ function OrionLib:Destroy()
 end
 
 return OrionLib
-
-return OrionLib
