@@ -1704,9 +1704,11 @@ end
 
 return OrionLib
 
--- FIX GLOBAL ABSOLUTO (coloque NO FINAL da library)
+-- === FIX GLOBAL ABSOLUTO (PC CLICK FIX) ===
 
-for _, v in ipairs(game:GetDescendants()) do
+task.wait() -- garante que tudo já foi criado
+
+for _, v in ipairs(Orion:GetDescendants()) do
     if v:IsA("Frame") then
         v.Active = false
         v.Selectable = false
