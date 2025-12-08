@@ -1704,18 +1704,23 @@ end
 
 return OrionLib
 
--- === FIX GLOBAL ABSOLUTO (PC CLICK FIX) ===
-
-task.wait() -- garante que tudo já foi criado
+-- === FIX DEFINITIVO DE INPUT (PC) ===
+task.wait()
 
 for _, v in ipairs(Orion:GetDescendants()) do
-    if v:IsA("Frame") then
+    if v:IsA("Frame")
+    or v:IsA("ImageLabel")
+    or v:IsA("TextLabel")
+    or v:IsA("ScrollingFrame") then
+
         v.Active = false
         v.Selectable = false
+        v.InputTransparent = true
     end
 end
--- reativa drag SOMENTE na TopBar
+-- Botões continuam ativos automaticamente
+-- Reativar somente a TopBar para drag
 if TopBar then
     TopBar.Active = true
-    TopBar.Selectable = false
+    TopBar.InputTransparent = false
 end
