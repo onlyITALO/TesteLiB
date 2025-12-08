@@ -45,9 +45,6 @@ local function GetIcon(IconName)
 end   
 
 local Orion = Instance.new("ScreenGui")
-Orion.ResetOnSpawn = false
-Orion.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
--- Orion.IgnoreGuiInset = true  -- optionally enable if needed
 guiRH = Instance.new("ScreenGui",Orion)
 nextb = Instance.new("ImageButton", guiRH)
 gui = Instance.new("UICorner", nextb)
@@ -613,7 +610,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		Transparency = 0.2,
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		ClipsDescendants = true,
-		Active = false,
+		Active = true,
 		Draggable = true
 	}), {
 		SetChildren(SetProps(MakeElement("TFrame"), {
