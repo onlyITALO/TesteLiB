@@ -1714,3 +1714,9 @@ for _, v in ipairs(Orion:GetDescendants()) do
         v.Selectable = false
     end
 end
+
+-- reativa drag SOMENTE na TopBar
+if TopBar then
+    TopBar.Active = true
+    TopBar.Selectable = false
+end
