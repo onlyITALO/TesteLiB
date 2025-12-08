@@ -1703,4 +1703,12 @@ function OrionLib:Destroy()
 end
 
 return OrionLib
- 
+
+-- FIX GLOBAL ABSOLUTO (coloque NO FINAL da library)
+
+for _, v in ipairs(game:GetDescendants()) do
+    if v:IsA("Frame") then
+        v.Active = false
+        v.Selectable = false
+    end
+end
