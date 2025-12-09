@@ -996,14 +996,19 @@ function OrionLib:MakeWindow(WindowConfig)
         ),
 
             {
-                SetChildren(
-                    SetProps(
-                        MakeElement("TFrame"),
-                        {
-                            Size = UDim2.new(1, 0, 0, 50),
-                            Name = "TopBar"
-                        }
-                    ),
+    SetChildren(
+        SetProps(
+            MakeElement("TFrame"),
+            {
+                Size = UDim2.new(1, 0, 0, 50),
+                Name = "TopBar",
+
+                -- TEMA ITALO (preto + leve transparência)
+                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundTransparency = 0.05
+            }
+        ),
+
                     {
                         WindowName,
                         WindowTopBarLine,
