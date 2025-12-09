@@ -471,6 +471,7 @@ CreateElement(
             "ScrollingFrame",
             {
                 BackgroundTransparency = 0.20,
+                BackgroundColor3 = Color3.fromRGB(0, 0, 0)
                 MidImage = "rbxassetid://7445543667",
                 BottomImage = "rbxassetid://7445543667",
                 TopImage = "rbxassetid://7445543667",
