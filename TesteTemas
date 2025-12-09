@@ -1006,7 +1006,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
                 -- TEMA ITALO (preto + leve transparência)
                 BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                BackgroundTransparency = 0.05
+                BackgroundTransparency = 0.20
             }
         ),
 
