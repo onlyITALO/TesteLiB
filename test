@@ -982,6 +982,7 @@ function OrionLib:MakeWindow(WindowConfig)
                 MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
                 {
                     Parent = Orion,
+                    BackgroundTransparency = 0.25,
                     Position = UDim2.new(0.5, -307, 0.5, -172),
                     Size = UDim2.new(0, 615, 0, 344),
                     ClipsDescendants = true
@@ -1093,19 +1094,11 @@ function OrionLib:MakeWindow(WindowConfig)
 
             local content =
                 string.format(
-                "Fique por dentro das novidades no nosso DISCORD",
+                "Click on the <b>Icon</b> or press the <b>%s</b> key to open the GUI again!",
                 _currentKey.Name
             )
 
-            OrionLib:MakeNotification(
-                {
-                    Name = "HUB FEICHADO",
-                    Content = content,
-                    Time = 10
-                }
-            )
-
-            if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
+            OrionLib:if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
                 OrionLib.MinimizeGUI:Destroy()
                 OrionLib.MinimizeGUI = nil
             end
