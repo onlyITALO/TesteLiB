@@ -759,8 +759,6 @@ function OrionLib:MakeWindow(WindowConfig)
                 {
                     Size = UDim2.new(0, 150, 1, -50),
                     Position = UDim2.new(0, 0, 0, 50)
-                
-                    BackgroundTransparency = 0.25,
                 }
             ),
             {
@@ -1095,11 +1093,19 @@ function OrionLib:MakeWindow(WindowConfig)
 
             local content =
                 string.format(
-                "Click on the <b>Icon</b> or press the <b>%s</b> key to open the GUI again!",
+                "Fique por dentro das novidades no nosso DISCORD",
                 _currentKey.Name
             )
 
-            OrionLib:if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
+            OrionLib:MakeNotification(
+                {
+                    Name = "HUB FEICHADO",
+                    Content = content,
+                    Time = 10
+                }
+            )
+
+            if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
                 OrionLib.MinimizeGUI:Destroy()
                 OrionLib.MinimizeGUI = nil
             end
