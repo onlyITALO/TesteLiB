@@ -1093,13 +1093,13 @@ function OrionLib:MakeWindow(WindowConfig)
 
             local content =
                 string.format(
-                "Click on the <b>Icon</b> or press the <b>%s</b> key to open the GUI again!",
+                "Fique por dentro das novidades no nosso DISCORD",
                 _currentKey.Name
             )
 
             OrionLib:MakeNotification(
                 {
-                    Name = "Interface Closed",
+                    Name = "Hub Feichado",
                     Content = content,
                     Time = 5
                 }
