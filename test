@@ -1,17 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocaSetProps(
-    MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
-    {
-        Parent = Orion,
-        Position = UDim2.new(0.5, -307, 0.5, -172),
-        Size = UDim2.new(0, 615, 0, 344),
-        ClipsDescendants = true,
-        BackgroundTransparency = 0.25
-    }
-),
-lPlayer
+local LocalPlayer = game:GetService("Players").LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 local MinimizeGUI
@@ -769,6 +759,8 @@ function OrionLib:MakeWindow(WindowConfig)
                 {
                     Size = UDim2.new(0, 150, 1, -50),
                     Position = UDim2.new(0, 0, 0, 50)
+                
+                    BackgroundTransparency = 0.25,
                 }
             ),
             {
@@ -989,15 +981,14 @@ function OrionLib:MakeWindow(WindowConfig)
         AddThemeObject(
         SetChildren(
             SetProps(
-    MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
-    {
-        Parent = Orion,
-        Position = UDim2.new(0.5, -307, 0.5, -172),
-        Size = UDim2.new(0, 615, 0, 344),
-        ClipsDescendants = true
-    }
-),
-
+                MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
+                {
+                    Parent = Orion,
+                    Position = UDim2.new(0.5, -307, 0.5, -172),
+                    Size = UDim2.new(0, 615, 0, 344),
+                    ClipsDescendants = true
+                }
+            ),
             {
                 SetChildren(
                     SetProps(
