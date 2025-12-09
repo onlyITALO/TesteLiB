@@ -1,7 +1,17 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local LocalPlayer = game:GetService("Players").LocaSetProps(
+    MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
+    {
+        Parent = Orion,
+        Position = UDim2.new(0.5, -307, 0.5, -172),
+        Size = UDim2.new(0, 615, 0, 344),
+        ClipsDescendants = true,
+        BackgroundTransparency = 0.25
+    }
+),
+lPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 local MinimizeGUI
