@@ -561,8 +561,7 @@ local NotificationHolder =
         Size = UDim2.new(0, 300, 1, -25),
         AnchorPoint = Vector2.new(1, 1),
         Parent = Orion
-    
-    BackgroundTransparency = 0.25,}
+    }
 )
 
 function OrionLib:MakeNotification(NotificationConfig)
@@ -1098,7 +1097,15 @@ function OrionLib:MakeWindow(WindowConfig)
                 _currentKey.Name
             )
 
-            OrionLib:Makeif OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
+            OrionLib:MakeNotification(
+                {
+                    Name = "Interface Closed",
+                    Content = content,
+                    Time = 5
+                }
+            )
+
+            if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
                 OrionLib.MinimizeGUI:Destroy()
                 OrionLib.MinimizeGUI = nil
             end
