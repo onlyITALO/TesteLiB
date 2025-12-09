@@ -1099,9 +1099,9 @@ function OrionLib:MakeWindow(WindowConfig)
 
             OrionLib:MakeNotification(
                 {
-                    Name = "Hub Feichado",
+                    Name = "HUB FEICHADO",
                     Content = content,
-                    Time = 5
+                    Time = 10
                 }
             )
 
