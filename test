@@ -1,191 +1,1094 @@
---[[ 
-    ITALO LIBRARY
-    Recriada do zero
-    Compatível: PC + Mobile
-    API mantida 100%
---]]
-
-local ITALOLib = {}
-local UIS = game:GetService("UserInputService")
+-- START: Variáveis, Serviços e Lógica de Compatibilidade (MANTIDO DE 'Funcionando pc.txt')
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
+local MinimizeGUI
 
--- Garantir mouse liberado no PC
-pcall(function()
-    UIS.MouseBehavior = Enum.MouseBehavior.Default
-    UIS.MouseIconEnabled = true
+if getgenv().LEEN_DEBUG then
+    warn("[ DEBUG SCRIPT ]")
+
+    warn("Swift Function:", swift_internal_correct)
+    warn("Gethui Function:", gethui)
+    warn(
+        "Check:",
+        swift_internal_correct and "Swift Issue" or gethui and "Normal" or game:GetService("CoreGui") and "Normal ²"
+    )
+
+    warn("[ DEBUG END ]")
+end
+
+-- Variável PARENT segura para PC/Mobile (Lógica crucial mantida para compatibilidade)
+local PARENT =
+    swift_internal_correct and game:GetService("CoreGui") or gethui and gethui() or game:GetService("CoreGui")
+
+-- END: Variáveis, Serviços e Lógica de Compatibilidade
+
+-- START: Definição da OrionLib e Componentes Visuais (INSERIDO DE 'ITALO LIBRARY.txt' - O NOVO VISUAL)
+local OrionLib = {
+	Elements = {},
+	ThemeObjects = {},
+	Connections = {},
+	Flags = {},
+	Themes = {
+		Default = {
+			-- NOVO TEMA AZUL
+			Main = Color3.fromRGB(0, 0, 0),
+			Second = Color3.fromRGB(10, 10, 10),
+			Stroke = Color3.fromRGB(0, 170, 255),
+			Divider = Color3.fromRGB(60, 60, 60),
+			Text = Color3.fromRGB(240,240,240),
+			TextDark = Color3.fromRGB(150, 150, 150)
+		}
+	},
+	SelectedTheme = "Default",
+	Folder = nil,
+	SaveCfg = false
+}
+
+-- Feather Icons (MANTIDO DO NOVO VISUAL)
+local Icons = {}
+
+local Success, Response = pcall(function()
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
 end)
 
--- ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ITALO_LIBRARY_GUI"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
-
--- ==============================
--- Notification
--- ==============================
-function ITALOLib:MakeNotification(cfg)
-    task.spawn(function()
-        local Frame = Instance.new("Frame", ScreenGui)
-        Frame.Size = UDim2.new(0, 300, 0, 70)
-        Frame.Position = UDim2.new(1, -320, 1, -100)
-        Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-        Frame.BorderSizePixel = 0
-
-        local Corner = Instance.new("UICorner", Frame)
-        Corner.CornerRadius = UDim.new(0,10)
-
-        local Title = Instance.new("TextLabel", Frame)
-        Title.Size = UDim2.new(1, -20, 0, 25)
-        Title.Position = UDim2.new(0,10,0,5)
-        Title.Text = cfg.Name or "Notification"
-        Title.TextColor3 = Color3.new(1,1,1)
-        Title.BackgroundTransparency = 1
-        Title.TextXAlignment = Enum.TextXAlignment.Left
-        Title.Font = Enum.Font.GothamBold
-        Title.TextSize = 14
-
-        local Content = Instance.new("TextLabel", Frame)
-        Content.Size = UDim2.new(1, -20, 0, 30)
-        Content.Position = UDim2.new(0,10,0,30)
-        Content.Text = cfg.Content or ""
-        Content.TextWrapped = true
-        Content.TextColor3 = Color3.fromRGB(200,200,200)
-        Content.BackgroundTransparency = 1
-        Content.TextXAlignment = Enum.TextXAlignment.Left
-        Content.Font = Enum.Font.Gotham
-        Content.TextSize = 13
-
-        TweenService:Create(Frame, TweenInfo.new(0.3), {
-            Position = UDim2.new(1, -320, 1, -180)
-        }):Play()
-
-        task.wait(cfg.Time or 4)
-        Frame:Destroy()
-    end)
+if not Success then
+	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response)
 end
 
--- ==============================
--- Window
--- ==============================
-function ITALOLib:MakeWindow(cfg)
-    local Window = {}
+-- FUNÇÕES UTILS E DE CRIAÇÃO DE ELEMENTOS (MAKEELEMENT, SETPROPS, ETC. - TODO O VISUAL)
 
-    local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0, 520, 0, 360)
-    Main.Position = UDim2.new(0.5, -260, 0.5, -180)
-    Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    Main.BorderSizePixel = 0
-    Main.Active = true
-    Main.Draggable = true
+local function MakeElement(Class, Name, Size, Icon)
+	local Element
+	if Class == "Folder" then
+		Element = Instance.new("Folder")
+	elseif Class == "Image" then
+		Element = Instance.new("ImageLabel")
+	elseif Class == "Label" then
+		Element = Instance.new("TextLabel")
+	elseif Class == "TFrame" then
+		Element = Instance.new("Frame")
+	elseif Class == "RoundFrame" then
+		Element = Instance.new("Frame")
+	elseif Class == "Button" then
+		Element = Instance.new("TextButton")
+	elseif Class == "TButton" then
+		Element = Instance.new("TextButton")
+	elseif Class == "ImageButton" then
+		Element = Instance.new("ImageButton")
+	elseif Class == "ScrollFrame" then
+		Element = Instance.new("ScrollingFrame")
+	elseif Class == "TextBox" then
+		Element = Instance.new("TextBox")
+	elseif Class == "ViewportFrame" then
+		Element = Instance.new("ViewportFrame")
+	end
+	if Class ~= "Folder" then
+		Element.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		Element.Size = Size or UDim2.new(0, 0, 0, 0)
+		Element.BackgroundTransparency = 1
+		Element.Name = Name or Class
+		Element.Text = ""
+		Element.BorderSizePixel = 0
+		Element.ZIndex = 2
+		if Class == "Label" or Class == "Button" or Class == "TButton" then
+			Element.Text = Name or Class
+			Element.Font = Enum.Font.SourceSans
+			Element.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Element.TextSize = Size or 14
+			Element.TextWrapped = true
+			Element.TextXAlignment = Enum.TextXAlignment.Left
+			if Class == "Button" then
+				Element.TextXAlignment = Enum.TextXAlignment.Center
+			end
+		elseif Class == "Image" then
+			Element.Image = Name or ""
+			Element.ImageColor3 = Color3.fromRGB(255, 255, 255)
+		end
+		if Class == "TFrame" or Class == "RoundFrame" then
+			Element.BackgroundTransparency = 0
+		end
+	end
+	return Element
+end
 
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,12)
+local function SetProps(Element, Props)
+	for Key, Value in pairs(Props) do
+		Element[Key] = Value
+	end
+	return Element
+end
 
-    local Top = Instance.new("TextLabel", Main)
-    Top.Size = UDim2.new(1, -40, 0, 40)
-    Top.Position = UDim2.new(0,20,0,0)
-    Top.Text = cfg.Name or "ITALO CLIENT"
-    Top.TextColor3 = Color3.new(1,1,1)
-    Top.BackgroundTransparency = 1
-    Top.Font = Enum.Font.GothamBold
-    Top.TextSize = 16
-    Top.TextXAlignment = Enum.TextXAlignment.Left
+local function SetChildren(Parent, Children)
+	for _, Child in ipairs(Children) do
+		Child.Parent = Parent
+	end
+end
 
-    local Close = Instance.new("TextButton", Main)
-    Close.Size = UDim2.new(0,30,0,30)
-    Close.Position = UDim2.new(1,-35,0,5)
-    Close.Text = "X"
-    Close.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    Close.TextColor3 = Color3.new(1,1,1)
-    Close.Font = Enum.Font.GothamBold
-    Close.TextSize = 14
-    Instance.new("UICorner", Close).CornerRadius = UDim.new(1,0)
+local function AddThemeObject(Object, Property)
+	Object.Name = Object.Name .. " - Theme Object"
+	OrionLib.ThemeObjects[Object] = Property
+	return Object
+end
 
-    Close.MouseButton1Click:Connect(function()
-        Main.Visible = not Main.Visible
-    end)
-    Close.TouchTap:Connect(function()
-        Main.Visible = not Main.Visible
-    end)
+local function SetTheme(Theme)
+	for Object, Property in pairs(OrionLib.ThemeObjects) do
+		Object[Property] = OrionLib.Themes[OrionLib.SelectedTheme][Property]
+	end
+end
 
-    local Tabs = Instance.new("Frame", Main)
-    Tabs.Size = UDim2.new(0,140,1,-50)
-    Tabs.Position = UDim2.new(0,0,0,50)
-    Tabs.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    Tabs.BorderSizePixel = 0
+local function RoundFrame(Size, Color, Parent, Transparency, Corner)
+	local Frame = SetProps(MakeElement("RoundFrame"), {
+		Size = Size,
+		Parent = Parent,
+		BackgroundTransparency = Transparency or 0
+	})
+	AddThemeObject(Frame, "BackgroundColor3")
+	local Corner = SetProps(MakeElement("UICorner"), {
+		CornerRadius = UDim.new(0, Corner or 6),
+		Parent = Frame
+	})
+	local Stroke = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = Frame,
+		Transparency = Transparency or 0
+	})
+	AddThemeObject(Stroke, "Color")
+	return Frame
+end
 
-    local Pages = Instance.new("Frame", Main)
-    Pages.Size = UDim2.new(1,-140,1,-50)
-    Pages.Position = UDim2.new(0,140,0,50)
-    Pages.BackgroundTransparency = 1
+-- FUNÇÃO: OrionLib:MakeWindow (PATCHED: Usa a variável PARENT para compatibilidade)
+function OrionLib:MakeWindow(Title, Config)
+	if OrionLib.Folder then
+		warn("Orion Library - Only one window can be created at a time.")
+		return
+	end
 
-    local TabLayout = Instance.new("UIListLayout", Tabs)
-    TabLayout.Padding = UDim.new(0,5)
+	-- Modificado para usar a variável PARENT do script original
+	if not OrionLib.Folder then
+		OrionLib.Folder = SetProps(MakeElement("Folder", Title), {
+			Parent = PARENT 
+		})
+	end
 
-    function Window:MakeTab(cfgTab)
-        local Tab = {}
+	OrionLib.Elements.Window = RoundFrame(UDim2.new(0, 420, 0, 500), nil, OrionLib.Folder, 0)
+	OrionLib.Elements.Window.Position = UDim2.new(0.5, -210, 0.5, -250)
+	OrionLib.Elements.Window.ZIndex = 3
+	
+	local TopBar = RoundFrame(UDim2.new(1, 0, 0, 36), nil, OrionLib.Elements.Window, 0)
+	TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	
+	local Corner = SetProps(MakeElement("UICorner"), {
+		CornerRadius = UDim.new(0, 6),
+		Parent = TopBar
+	})
+	
+	local TopBarStroke = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = TopBar
+	})
+	AddThemeObject(TopBarStroke, "Color")
+	
+	local TabList = SetProps(MakeElement("ScrollFrame"), {
+		Size = UDim2.new(0, 110, 1, -36),
+		Position = UDim2.new(0, 0, 0, 36),
+		Parent = OrionLib.Elements.Window,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+		CanvasSize = UDim2.new(0, 0, 0, 0)
+	})
+	
+	local ListLayout = SetProps(MakeElement("UIListLayout"), {
+		Parent = TabList,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 0),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center
+	})
+	
+	local Padding = SetProps(MakeElement("UIPadding"), {
+		Parent = TabList,
+		PaddingTop = UDim.new(0, 5),
+		PaddingBottom = UDim.new(0, 5)
+	})
+	
+	local Title = SetProps(MakeElement("Label", Title, 18), {
+		Size = UDim2.new(1, -60, 0, 36),
+		Position = UDim2.new(0, 20, 0, 0),
+		Parent = TopBar,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Enum.Font.SourceSansBold,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(Title, "TextColor3")
+	
+	OrionLib.Elements.Content = RoundFrame(UDim2.new(1, -110, 1, -36), nil, OrionLib.Elements.Window, 0)
+	OrionLib.Elements.Content.Position = UDim2.new(0, 110, 0, 36)
+	OrionLib.Elements.Content.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	
+	local ContentList = SetProps(MakeElement("UIListLayout"), {
+		Parent = OrionLib.Elements.Content,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center
+	})
+	
+	local ContentPadding = SetProps(MakeElement("UIPadding"), {
+		Parent = OrionLib.Elements.Content,
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10)
+	})
+	
+	local Drag = TopBar
+	
+	local DragOffset = Vector2.new()
+	
+	Drag.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+			DragOffset = Vector2.new(Input.Position.X - OrionLib.Elements.Window.AbsolutePosition.X, Input.Position.Y - OrionLib.Elements.Window.AbsolutePosition.Y)
+			
+			local Current = UserInputService.InputChanged:Connect(function(Input)
+				if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+					OrionLib.Elements.Window.Position = UDim2.new(0, Input.Position.X - DragOffset.X, 0, Input.Position.Y - DragOffset.Y)
+				end
+			end)
+			
+			local Stop = UserInputService.InputEnded:Connect(function(Input)
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+					Current:Disconnect()
+					Stop:Disconnect()
+				end
+			end)
+		end
+	end)
+	
+	return OrionLib
+end
 
-        local Button = Instance.new("TextButton", Tabs)
-        Button.Size = UDim2.new(1,-10,0,35)
-        Button.Position = UDim2.new(0,5,0,0)
-        Button.Text = cfgTab.Name
-        Button.BackgroundColor3 = Color3.fromRGB(30,30,30)
-        Button.TextColor3 = Color3.new(1,1,1)
-        Button.Font = Enum.Font.Gotham
-        Button.TextSize = 14
-        Instance.new("UICorner", Button)
+local TabFunction = {}
 
-        local Page = Instance.new("ScrollingFrame", Pages)
-        Page.Size = UDim2.new(1,0,1,0)
-        Page.CanvasSize = UDim2.new(0,0,0,0)
-        Page.ScrollBarImageTransparency = 1
-        Page.Visible = false
+function TabFunction:MakeTab(Name)
+	local Tab = {
+		Name = Name,
+		Elements = {},
+		Flags = {}
+	}
+	
+	local TabButton = SetProps(MakeElement("Button", Name, 14), {
+		Size = UDim2.new(1, 0, 0, 30),
+		Parent = OrionLib.Elements.Window:FindFirstChild("ScrollFrame"),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTransparency = 0.2
+	})
+	
+	TabButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	
+	AddThemeObject(TabButton, "TextColor3")
+	
+	local Highlight = SetProps(MakeElement("TFrame", Name .. " - Highlight"), {
+		Size = UDim2.new(0, 4, 1, 0),
+		Parent = TabButton
+	})
+	
+	AddThemeObject(Highlight, "BackgroundColor3")
+	
+	Highlight.BackgroundTransparency = 1
+	Highlight.ZIndex = 3
+	
+	TabButton.MouseEnter:Connect(function()
+		Highlight.BackgroundTransparency = 0
+	end)
+	
+	TabButton.MouseLeave:Connect(function()
+		if OrionLib.Flags.SelectedTab == Tab then
+			return
+		end
+		Highlight.BackgroundTransparency = 1
+	end)
+	
+	local TabContent = SetProps(MakeElement("ScrollFrame", Name .. " - Content"), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = OrionLib.Elements.Content,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	})
+	
+	TabContent.Visible = false
+	
+	local ListLayout = SetProps(MakeElement("UIListLayout"), {
+		Parent = TabContent,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center
+	})
+	
+	local Padding = SetProps(MakeElement("UIPadding"), {
+		Parent = TabContent,
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10)
+	})
+	
+	TabButton.MouseButton1Click:Connect(function()
+		if OrionLib.Flags.SelectedTab then
+			OrionLib.Flags.SelectedTab.Elements.Content.Visible = false
+			OrionLib.Flags.SelectedTab.Elements.Button.TextTransparency = 0.2
+			OrionLib.Flags.SelectedTab.Elements.Button:FindFirstChild("Highlight").BackgroundTransparency = 1
+		end
+		
+		TabContent.Visible = true
+		TabButton.TextTransparency = 0
+		Highlight.BackgroundTransparency = 0
+		OrionLib.Flags.SelectedTab = Tab
+	end)
+	
+	if not OrionLib.Flags.SelectedTab then
+		TabButton.MouseButton1Click:Fire()
+	end
+	
+	Tab.Elements.Button = TabButton
+	Tab.Elements.Content = TabContent
+	
+	Tab.MakeGroup = TabFunction.MakeGroup
+	Tab.AddButton = TabFunction.AddButton
+	Tab.AddLabel = TabFunction.AddLabel
+	Tab.AddToggle = TabFunction.AddToggle
+	Tab.AddSlider = TabFunction.AddSlider
+	Tab.AddDropdown = TabFunction.AddDropdown
+	Tab.AddColorPicker = TabFunction.AddColorPicker
+	Tab.AddKeybind = TabFunction.AddKeybind
+	Tab.AddSection = TabFunction.AddSection
+	Tab.AddSeperator = TabFunction.AddSeperator
+	Tab.AddTabbox = TabFunction.AddTabbox
+	Tab.AddTextbox = TabFunction.AddTextbox
+	
+	table.insert(OrionLib.Elements.Content:GetChildren(), TabButton)
+	
+	return Tab
+end
 
-        local Layout = Instance.new("UIListLayout", Page)
-        Layout.Padding = UDim.new(0,8)
+function TabFunction:MakeGroup(Title)
+	local Group = {
+		Name = Title,
+		Elements = {},
+		Flags = {}
+	}
+	
+	local GroupFrame = RoundFrame(UDim2.new(0, 270, 0, 0), nil, OrionLib.Flags.SelectedTab.Elements.Content, 0)
+	GroupFrame.Size = UDim2.new(1, -20, 0, 0)
+	GroupFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	
+	local Title = SetProps(MakeElement("Label", Title, 14), {
+		Size = UDim2.new(1, -20, 0, 14),
+		Position = UDim2.new(0, 10, 0, 10),
+		Parent = GroupFrame,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		BackgroundTransparency = 1,
+		Font = Enum.Font.SourceSansBold
+	})
+	AddThemeObject(Title, "TextColor3")
+	
+	local Seperator = RoundFrame(UDim2.new(1, -20, 0, 1), nil, GroupFrame, 0)
+	Seperator.Position = UDim2.new(0, 10, 0, 29)
+	Seperator.BackgroundTransparency = 0
+	AddThemeObject(Seperator, "BackgroundColor3")
+	
+	local Container = SetProps(MakeElement("TFrame", Title .. " - Container"), {
+		Size = UDim2.new(1, -20, 1, -40),
+		Position = UDim2.new(0, 10, 0, 40),
+		Parent = GroupFrame,
+		BackgroundTransparency = 1
+	})
+	
+	local ListLayout = SetProps(MakeElement("UIListLayout"), {
+		Parent = Container,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5),
+		HorizontalAlignment = Enum.HorizontalAlignment.Left
+	})
+	
+	local Padding = SetProps(MakeElement("UIPadding"), {
+		Parent = Container,
+		PaddingTop = UDim.new(0, 5),
+		PaddingBottom = UDim.new(0, 5)
+	})
+	
+	GroupFrame.Size = UDim2.new(1, -20, 0, Container.AbsoluteSize.Y + 40)
+	
+	Container.ChildAdded:Connect(function()
+		GroupFrame.Size = UDim2.new(1, -20, 0, Container.AbsoluteSize.Y + 40)
+	end)
+	
+	Container.ChildRemoved:Connect(function()
+		GroupFrame.Size = UDim2.new(1, -20, 0, Container.AbsoluteSize.Y + 40)
+	end)
+	
+	Group.Elements.Frame = GroupFrame
+	Group.Elements.Container = Container
+	
+	Group.AddButton = TabFunction.AddButton
+	Group.AddLabel = TabFunction.AddLabel
+	Group.AddToggle = TabFunction.AddToggle
+	Group.AddSlider = TabFunction.AddSlider
+	Group.AddDropdown = TabFunction.AddDropdown
+	Group.AddColorPicker = TabFunction.AddColorPicker
+	Group.AddKeybind = TabFunction.AddKeybind
+	Group.AddSection = TabFunction.AddSection
+	Group.AddSeperator = TabFunction.AddSeperator
+	Group.AddTabbox = TabFunction.AddTabbox
+	Group.AddTextbox = TabFunction.AddTextbox
+	
+	return Group
+end
 
-        Button.MouseButton1Click:Connect(function()
-            for _,v in ipairs(Pages:GetChildren()) do
-                if v:IsA("ScrollingFrame") then v.Visible = false end
-            end
-            Page.Visible = true
-        end)
+function TabFunction:AddButton(Name, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Button = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	Button.BackgroundTransparency = 1
+	
+	local ButtonText = SetProps(MakeElement("Button", Name, 14), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = Button,
+		TextXAlignment = Enum.TextXAlignment.Center
+	})
+	
+	AddThemeObject(ButtonText, "TextColor3")
+	
+	local Stroke = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = Button
+	})
+	AddThemeObject(Stroke, "Color")
+	Stroke.Transparency = 1
+	
+	Button.MouseEnter:Connect(function()
+		Stroke.Transparency = 0.5
+	end)
+	
+	Button.MouseLeave:Connect(function()
+		Stroke.Transparency = 1
+	end)
+	
+	Button.MouseButton1Click:Connect(function()
+		if Callback then
+			Callback()
+		end
+	end)
+	
+	return Button
+end
 
-        Button.TouchTap:Connect(Button.MouseButton1Click)
+function TabFunction:AddLabel(Name)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Label = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Label.BackgroundTransparency = 1
+	
+	local LabelText = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = Label,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		BackgroundTransparency = 1
+	})
+	
+	AddThemeObject(LabelText, "TextColor3")
+	
+	return Label
+end
 
-        function Tab:AddButton(cfgBtn)
-            local B = Instance.new("TextButton", Page)
-            B.Size = UDim2.new(1,-10,0,40)
-            B.Position = UDim2.new(0,5,0,0)
-            B.Text = cfgBtn.Name
-            B.BackgroundColor3 = Color3.fromRGB(35,35,35)
-            B.TextColor3 = Color3.new(1,1,1)
-            B.Font = Enum.Font.Gotham
-            B.TextSize = 14
-            Instance.new("UICorner", B)
+function TabFunction:AddToggle(Name, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Toggle = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Toggle.BackgroundTransparency = 1
+	
+	local ToggleButton = RoundFrame(UDim2.new(0, 30, 0, 20), nil, Toggle, 0)
+	ToggleButton.Position = UDim2.new(1, -30, 0, 5)
+	ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	
+	local ToggleHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = ToggleButton
+	})
+	AddThemeObject(ToggleHighlight, "Color")
+	
+	local ToggleLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -35, 1, 0),
+		Parent = Toggle,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(ToggleLabel, "TextColor3")
+	
+	local ToggleCircle = RoundFrame(UDim2.new(0, 16, 0, 16), nil, ToggleButton, 0)
+	ToggleCircle.Position = UDim2.new(0, 2, 0, 2)
+	ToggleCircle.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	
+	local ToggleHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = ToggleCircle
+	})
+	AddThemeObject(ToggleHighlight, "Color")
+	
+	ToggleCircle.BackgroundTransparency = 1
+	
+	local IsToggled = false
+	
+	ToggleButton.MouseButton1Click:Connect(function()
+		IsToggled = not IsToggled
+		if IsToggled then
+			ToggleCircle:TweenPosition(UDim2.new(1, -18, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+			ToggleButton.BackgroundTransparency = 0
+			ToggleCircle.BackgroundTransparency = 0
+			if Callback then
+				Callback(true)
+			end
+		else
+			ToggleCircle:TweenPosition(UDim2.new(0, 2, 0, 2), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+			ToggleButton.BackgroundTransparency = 1
+			ToggleCircle.BackgroundTransparency = 1
+			if Callback then
+				Callback(false)
+			end
+		end
+	end)
+	
+	return Toggle
+end
 
-            B.MouseButton1Click:Connect(cfgBtn.Callback)
-            B.TouchTap:Connect(cfgBtn.Callback)
-        end
+function TabFunction:AddSlider(Name, Config, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Slider = RoundFrame(UDim2.new(1, 0, 0, 55), nil, ItemParent, 0)
+	Slider.BackgroundTransparency = 1
+	
+	local SliderLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 0, 14),
+		Position = UDim2.new(0, 0, 0, 0),
+		Parent = Slider,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(SliderLabel, "TextColor3")
+	
+	local SliderValue = SetProps(MakeElement("Label", Config.Default or 0, 14), {
+		Size = UDim2.new(0, 100, 0, 14),
+		Position = UDim2.new(1, -100, 0, 0),
+		Parent = Slider,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(SliderValue, "TextColor3")
+	
+	local SliderBar = RoundFrame(UDim2.new(1, 0, 0, 5), nil, Slider, 0)
+	SliderBar.Position = UDim2.new(0, 0, 0, 25)
+	SliderBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	
+	local SliderFill = RoundFrame(UDim2.new(0, 0, 1, 0), nil, SliderBar, 0)
+	AddThemeObject(SliderFill, "BackgroundColor3")
+	
+	local SliderCircle = RoundFrame(UDim2.new(0, 10, 0, 10), nil, SliderBar, 0)
+	SliderCircle.Position = UDim2.new(0, -5, 0, -2.5)
+	SliderCircle.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	
+	local SliderHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = SliderCircle
+	})
+	AddThemeObject(SliderHighlight, "Color")
+	
+	local IsDragging = false
+	
+	SliderBar.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+			IsDragging = true
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(Input)
+		if IsDragging then
+			local MouseX = Input.Position.X - SliderBar.AbsolutePosition.X
+			local Percent = math.clamp(MouseX / SliderBar.AbsoluteSize.X, 0, 1)
+			local Value = math.round(Percent * (Config.Max - Config.Min) + Config.Min)
+			
+			SliderValue.Text = Value
+			
+			SliderFill:TweenSize(UDim2.new(Percent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+			SliderCircle:TweenPosition(UDim2.new(Percent, -5, 0.5, -5), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+			
+			if Callback then
+				Callback(Value)
+			end
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+			IsDragging = false
+		end
+	end)
+	
+	local function SetSliderValue(Value)
+		local Percent = (Value - Config.Min) / (Config.Max - Config.Min)
+		
+		SliderValue.Text = Value
+		
+		SliderFill:TweenSize(UDim2.new(Percent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+		SliderCircle:TweenPosition(UDim2.new(Percent, -5, 0.5, -5), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2)
+	end
+	
+	SetSliderValue(Config.Default or Config.Min)
+	
+	return Slider
+end
 
-        function Tab:AddParagraph(title, text)
-            local L = Instance.new("TextLabel", Page)
-            L.Size = UDim2.new(1,-10,0,60)
-            L.Position = UDim2.new(0,5,0,0)
-            L.Text = title.."\n"..text
-            L.TextWrapped = true
-            L.TextColor3 = Color3.new(1,1,1)
-            L.BackgroundTransparency = 1
-            L.Font = Enum.Font.Gotham
-            L.TextSize = 13
-        end
+function TabFunction:AddDropdown(Name, Config, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Dropdown = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Dropdown.BackgroundTransparency = 1
+	
+	local DropdownLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 1, 0),
+		Parent = Dropdown,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(DropdownLabel, "TextColor3")
+	
+	local DropdownSelected = RoundFrame(UDim2.new(0, 100, 0, 20), nil, Dropdown, 0)
+	DropdownSelected.Position = UDim2.new(1, -100, 0, 5)
+	DropdownSelected.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	
+	local DropdownHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = DropdownSelected
+	})
+	AddThemeObject(DropdownHighlight, "Color")
+	
+	local DropdownText = SetProps(MakeElement("Label", Config.Default or Config.Options[1], 14), {
+		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.new(0, 10, 0, 0),
+		Parent = DropdownSelected,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left
+	})
+	AddThemeObject(DropdownText, "TextColor3")
+	
+	local DropdownArrow = SetProps(MakeElement("Image", Icons["chevron-down"], 0), {
+		Size = UDim2.new(0, 16, 0, 16),
+		Position = UDim2.new(1, -23, 0, 2),
+		Parent = DropdownSelected,
+		ImageColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(DropdownArrow, "ImageColor3")
+	
+	local DropdownMenu = RoundFrame(UDim2.new(0, 100, 0, 0), nil, Dropdown, 0)
+	DropdownMenu.Position = UDim2.new(1, -100, 0, 30)
+	DropdownMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	DropdownMenu.Visible = false
+	DropdownMenu.ZIndex = 4
+	
+	local DropdownMenuLayout = SetProps(MakeElement("UIListLayout"), {
+		Parent = DropdownMenu,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 0),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center
+	})
+	
+	for _, Option in pairs(Config.Options) do
+		local DropdownOption = SetProps(MakeElement("Button", Option, 14), {
+			Size = UDim2.new(1, 0, 0, 20),
+			Parent = DropdownMenu,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			BackgroundTransparency = 1
+		})
+		
+		AddThemeObject(DropdownOption, "TextColor3")
+		
+		DropdownOption.MouseButton1Click:Connect(function()
+			DropdownText.Text = Option
+			DropdownMenu.Visible = false
+			if Callback then
+				Callback(Option)
+			end
+		end)
+	end
+	
+	DropdownMenu.Size = UDim2.new(0, 100, 0, #Config.Options * 20)
+	
+	DropdownSelected.MouseButton1Click:Connect(function()
+		DropdownMenu.Visible = not DropdownMenu.Visible
+	end)
+	
+	return Dropdown
+end
 
-        return Tab
+function TabFunction:AddColorPicker(Name, Config, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local ColorPicker = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	ColorPicker.BackgroundTransparency = 1
+	
+	local ColorPickerLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 1, 0),
+		Parent = ColorPicker,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(ColorPickerLabel, "TextColor3")
+	
+	local ColorPickerBox = RoundFrame(UDim2.new(0, 20, 0, 20), nil, ColorPicker, 0)
+	ColorPickerBox.Position = UDim2.new(1, -25, 0, 5)
+	
+	local ColorPickerHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = ColorPickerBox
+	})
+	AddThemeObject(ColorPickerHighlight, "Color")
+	
+	ColorPickerBox.BackgroundColor3 = Config.Default or Color3.fromRGB(255, 255, 255)
+	
+	ColorPickerBox.MouseButton1Click:Connect(function()
+		local ColorPicker = SetProps(MakeElement("ColorPicker", Name .. " - ColorPicker", UDim2.new(0, 200, 0, 200)), {
+			Parent = OrionLib.Elements.Window
+		})
+		
+		ColorPicker.Color = ColorPickerBox.BackgroundColor3
+		
+		ColorPicker.Changed:Connect(function()
+			ColorPickerBox.BackgroundColor3 = ColorPicker.Color
+			if Callback then
+				Callback(ColorPicker.Color)
+			end
+		end)
+	end)
+	
+	return ColorPicker
+end
+
+function TabFunction:AddKeybind(Name, Config, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Keybind = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Keybind.BackgroundTransparency = 1
+	
+	local KeybindLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 1, 0),
+		Parent = Keybind,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(KeybindLabel, "TextColor3")
+	
+	local KeybindButton = RoundFrame(UDim2.new(0, 100, 0, 20), nil, Keybind, 0)
+	KeybindButton.Position = UDim2.new(1, -100, 0, 5)
+	KeybindButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	
+	local KeybindHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = KeybindButton
+	})
+	AddThemeObject(KeybindHighlight, "Color")
+	
+	local KeybindText = SetProps(MakeElement("Label", Config.Default or "None", 14), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = KeybindButton,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Center
+	})
+	AddThemeObject(KeybindText, "TextColor3")
+	
+	local IsListening = false
+	
+	KeybindButton.MouseButton1Click:Connect(function()
+		IsListening = true
+		KeybindText.Text = "Listening..."
+	end)
+	
+	UserInputService.InputBegan:Connect(function(Input)
+		if IsListening then
+			IsListening = false
+			KeybindText.Text = Input.KeyCode.Name
+			if Callback then
+				Callback(Input.KeyCode)
+			end
+		end
+	end)
+	
+	return Keybind
+end
+
+function TabFunction:AddSection(Name)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Section = RoundFrame(UDim2.new(1, 0, 0, 20), nil, ItemParent, 0)
+	Section.BackgroundTransparency = 1
+	
+	local SectionLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = Section,
+		BackgroundTransparency = 1,
+		Font = Enum.Font.SourceSansBold,
+		TextXAlignment = Enum.TextXAlignment.Center
+	})
+	AddThemeObject(SectionLabel, "TextColor3")
+	
+	return Section
+end
+
+function TabFunction:AddSeperator()
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Seperator = RoundFrame(UDim2.new(1, 0, 0, 1), nil, ItemParent, 0)
+	Seperator.BackgroundTransparency = 0
+	AddThemeObject(Seperator, "BackgroundColor3")
+	
+	return Seperator
+end
+
+function TabFunction:AddTabbox(Name, Config)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Tabbox = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Tabbox.BackgroundTransparency = 1
+	
+	local TabboxLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 1, 0),
+		Parent = Tabbox,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(TabboxLabel, "TextColor3")
+	
+	local TabboxMenu = RoundFrame(UDim2.new(0, 100, 0, 20), nil, Tabbox, 0)
+	TabboxMenu.Position = UDim2.new(1, -100, 0, 5)
+	TabboxMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	
+	local TabboxHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = TabboxMenu
+	})
+	AddThemeObject(TabboxHighlight, "Color")
+	
+	local TabboxText = SetProps(MakeElement("Label", Config.Default or Config.Options[1], 14), {
+		Size = UDim2.new(1, 0, 1, 0),
+		Parent = TabboxMenu,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Center
+	})
+	AddThemeObject(TabboxText, "TextColor3")
+	
+	TabboxMenu.MouseButton1Click:Connect(function()
+		-- Toggle Tabbox logic
+	end)
+	
+	return Tabbox
+end
+
+function TabFunction:AddTextbox(Name, Config, Callback)
+	local Group = OrionLib.Flags.SelectedGroup
+	local ItemParent = Group and Group.Elements.Container or OrionLib.Flags.SelectedTab.Elements.Content
+	
+	if Group then
+		OrionLib.Flags.SelectedGroup = nil
+	end
+	
+	local Textbox = RoundFrame(UDim2.new(1, 0, 0, 30), nil, ItemParent, 0)
+	Textbox.BackgroundTransparency = 1
+	
+	local TextboxLabel = SetProps(MakeElement("Label", Name, 14), {
+		Size = UDim2.new(1, -100, 1, 0),
+		Parent = Textbox,
+		BackgroundTransparency = 1
+	})
+	AddThemeObject(TextboxLabel, "TextColor3")
+	
+	local TextboxInput = SetProps(MakeElement("TextBox", Config.Default or "", 14), {
+		Size = UDim2.new(0, 100, 0, 20),
+		Position = UDim2.new(1, -100, 0, 5),
+		Parent = Textbox,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+		TextXAlignment = Enum.TextXAlignment.Center
+	})
+	AddThemeObject(TextboxInput, "TextColor3")
+	
+	local TextboxHighlight = SetProps(MakeElement("UIStroke"), {
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		Parent = TextboxInput
+	})
+	AddThemeObject(TextboxHighlight, "Color")
+	
+	TextboxInput.FocusLost:Connect(function()
+		if Callback then
+			Callback(TextboxInput.Text)
+		end
+	end)
+	
+	return Textbox
+end
+
+local WorldToScreen = {}
+
+function WorldToScreen:WorldToScreen(Vector3)
+	local ScreenPoint = game:GetService("Workspace").CurrentCamera:WorldToScreenPoint(Vector3)
+	return Vector2.new(ScreenPoint.X, ScreenPoint.Y), ScreenPoint.Z
+end
+-- END: Definição da OrionLib e Componentes Visuais
+
+-- START: Lógica de Funcionalidade de Minimizar (MANTIDO DE 'Funcionando pc.txt')
+-- Esta é a lógica única de Toggle GUI, preservada.
+if not OrionLib.MinimizeGUI then
+    local UIS = game:GetService("UserInputService")
+    local Orion = OrionLib.Elements.Window or PARENT:FindFirstChild(OrionLib.Folder.Name):FindFirstChild("Frame")
+    local dragInput
+    local dragging
+    local dragStart
+    local startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        Orion:SetAttribute("CurrentPosition", newPos)
+        Orion:TweenPosition(newPos, "Out", "Quad", 0.001, true)
     end
+    
+    MinimizeGUI = SetProps(MakeElement("ImageButton", "Minimize", UDim2.new(0, 36, 0, 36)), {
+        Parent = PARENT,
+        Position = UDim2.new(1, -50, 0, 10),
+        Image = "rbxassetid://6022830843",
+        ImageColor3 = Color3.fromRGB(20, 20, 20),
+        BackgroundTransparency = 0
+    })
 
-    return Window
+    local ToggleButton = MinimizeGUI
+
+    ToggleButton.InputBegan:Connect(
+        function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = ToggleButton.Position
+
+                input.Changed:Connect(
+                    function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end
+                )
+            end
+        end
+    )
+
+    ToggleButton.InputChanged:Connect(
+        function(input)
+            if
+                input.UserInputType == Enum.UserInputType.MouseMovement or
+                    input.UserInputType == Enum.UserInputType.Touch
+             then
+                dragInput = input
+            end
+        end
+    )
+
+    UIS.InputChanged:Connect(
+        function(input)
+            if input == dragInput and dragging then
+                update(input)
+            end
+        end
+    )
+
+    ToggleButton.MouseButton1Click:Connect(
+        function()
+            Orion.Enabled = not Orion.Enabled
+        end
+    )
+
+    OrionLib.MinimizeGUI = MinimizeGUI
 end
 
-return ITALOLib
+function OrionLib:Destroy()
+    if Orion then
+        Orion:Destroy()
+    end
+    if OrionLib.MinimizeGUI and OrionLib.MinimizeGUI.Parent then
+        OrionLib.MinimizeGUI:Destroy()
+        OrionLib.MinimizeGUI = nil
+    end
+end
+
+return OrionLib
+-- END: Lógica de Funcionalidade de Minimizar
