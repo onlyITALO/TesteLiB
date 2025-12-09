@@ -1,1116 +1,134 @@
---[[
-    ROBLUE CLIENT - BASE VISUAL (PARTE 1)
-    Esta é a fusão da UI antiga + engine nova.
-    NÃO execute até receber todas as partes.
-]]--
+-- ROBLUE_LIB: UI Library with themed window, sidebar, tabs, and elements.
+local ROBLUE_LIB = {}
 
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local HttpService = game:GetService("HttpService")
-
---===============================--
---   CRIAÇÃO DOS OBJETOS BASE    --
---===============================--
-
-local Orion = Instance.new("ScreenGui")
-Orion.Name = "ROBLUE_CLIENT"
-Orion.Parent = game:GetService("CoreGui")
-
--- Remove instâncias antigas
-for _, ui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-    if ui.Name == "ROBLUE_CLIENT" and ui ~= Orion then
-        ui:Destroy()
-    end
-end
-
--- Janela Principal
-local MainWindow = Instance.new("Frame")
-MainWindow.Size = UDim2.new(0, 610, 0, 340)
-MainWindow.Position = UDim2.new(0.5, -305, 0.5, -170)
-MainWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainWindow.BorderSizePixel = 0
-MainWindow.Parent = Orion
-MainWindow.Visible = false
-
-Instance.new("UICorner", MainWindow).CornerRadius = UDim.new(0, 10)
-
--- TopBar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainWindow
-
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
-
-local TopLine = Instance.new("Frame")
-TopLine.Size = UDim2.new(1, 0, 0, 1)
-TopLine.Position = UDim2.new(0, 0, 1, -1)
-TopLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-TopLine.BorderSizePixel = 0
-TopLine.Parent = TopBar
-
--- Texto do Nome "ROBLUE CLIENT"
-local Title = Instance.new("TextLabel")
-Title.Text = "ROBLUE CLIENT"
-Title.Size = UDim2.new(1, -20, 1, 0)
-Title.Position = UDim2.new(0, 20, 0, 0)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 20
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
--- Botão Fechar
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 20, 0, 20)
-CloseButton.Position = UDim2.new(1, -35, 0, 13)
-CloseButton.Text = "✕"
-CloseButton.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
-CloseButton.BackgroundTransparency = 1
-CloseButton.Parent = TopBar
-
--- Botão Minimizar
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
-MinimizeButton.Position = UDim2.new(1, -65, 0, 13)
-MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-MinimizeButton.Font = Enum.Font.GothamBlack
-MinimizeButton.TextSize = 22
-MinimizeButton.BackgroundTransparency = 1
-MinimizeButton.Parent = TopBar
-
--- Painel lateral (ABAS)
-local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 150, 1, -45)
-SideBar.Position = UDim2.new(0, 0, 0, 45)
-SideBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-SideBar.BorderSizePixel = 0
-SideBar.Parent = MainWindow
-
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
-
-local SideBarLine = Instance.new("Frame")
-SideBarLine.Size = UDim2.new(0, 1, 1, 0)
-SideBarLine.Position = UDim2.new(1, -1, 0, 0)
-SideBarLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-SideBarLine.BorderSizePixel = 0
-SideBarLine.Parent = SideBar
-
--- Área onde fica o conteúdo das tabs
-local TabContent = Instance.new("Frame")
-TabContent.Size = UDim2.new(1, -150, 1, -45)
-TabContent.Position = UDim2.new(0, 150, 0, 45)
-TabContent.BackgroundTransparency = 1
-TabContent.Parent = MainWindow
-
---===============================--
---        ANIMAÇÕES BASE         --
---===============================--
-
-local function AnimateOpen()
-    MainWindow.Visible = true
-    MainWindow.Size = UDim2.new(0, 610, 0, 10)
-
-    TweenService:Create(
-        MainWindow,
-        TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-        {Size = UDim2.new(0, 610, 0, 340)}
-    ):Play()
-end
-
-local function AnimateClose()
-    TweenService:Create(
-        MainWindow,
-        TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
-        {Size = UDim2.new(0, 610, 0, 0)}
-    ):Play()
-
-    task.wait(0.35)
-    MainWindow.Visible = false
-end
-
-CloseButton.MouseButton1Down:Connect(AnimateClose)
-
-MinimizeButton.MouseButton1Down:Connect(function()
-    if MainWindow.Size.Y.Offset > 50 then
-        TweenService:Create(
-            MainWindow,
-            TweenInfo.new(0.3, Enum.EasingStyle.Quint),
-            {Size = UDim2.new(0, 610, 0, 45)}
-        ):Play()
-    else
-        TweenService:Create(
-            MainWindow,
-            TweenInfo.new(0.3, Enum.EasingStyle.Quint),
-            {Size = UDim2.new(0, 610, 0, 340)}
-        ):Play()
-    end
-end)
-
--- Mostra a janela com animação inicial
-AnimateOpen()
-
-return {
-    Window = MainWindow,
-    TabContent = TabContent,
-    SideBar = SideBar,
-}
---[[
-    ROBLUE CLIENT - SISTEMA DE ABAS (PARTE 2)
-    NÃO execute até receber todas as partes.
-]]--
-
-local Module = {}  -- receberá as tabs no final
-
-local SideBar = MainWindow:FindFirstChildWhichIsA("Frame")
-local TabContent = MainWindow:FindFirstChild("TabContent")
-
-local Tabs = {}
-local CurrentTab = nil
-
--- Função para criar uma aba
-function Module:CreateTab(Name, Icon)
-    
-    local TabButton = Instance.new("TextButton")
-    TabButton.Parent = SideBar
-    TabButton.Size = UDim2.new(1, -10, 0, 40)
-    TabButton.Position = UDim2.new(0, 5, 0, #SideBar:GetChildren() * 45)
-    TabButton.Text = Name
-    TabButton.Font = Enum.Font.GothamBold
-    TabButton.TextSize = 15
-    TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-    TabButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    TabButton.AutoButtonColor = false
-    TabButton.BorderSizePixel = 0
-
-    Instance.new("UICorner", TabButton).CornerRadius = UDim.new(0, 6)
-
-    local IconImage = Instance.new("ImageLabel")
-    IconImage.Parent = TabButton
-    IconImage.Size = UDim2.new(0, 22, 0, 22)
-    IconImage.Position = UDim2.new(0, 10, 0.5, -11)
-    IconImage.BackgroundTransparency = 1
-    IconImage.Image = Icon
-
-    local Title = Instance.new("TextLabel")
-    Title.Parent = TabButton
-    Title.BackgroundTransparency = 1
-    Title.Text = Name
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 15
-    Title.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Title.Position = UDim2.new(0, 40, 0, 0)
-    Title.Size = UDim2.new(1, -40, 1, 0)
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Conteúdo da aba
-    local Content = Instance.new("ScrollingFrame")
-    Content.Parent = TabContent
-    Content.Visible = false
-    Content.Size = UDim2.new(1, -20, 1, -20)
-    Content.Position = UDim2.new(0, 10, 0, 10)
-    Content.BackgroundTransparency = 1
-    Content.ScrollBarThickness = 4
-    Content.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-    local Layout = Instance.new("UIListLayout")
-    Layout.Parent = Content
-    Layout.Padding = UDim.new(0, 8)
-
-    Tabs[Name] = {Button = TabButton, Frame = Content}
-
-    -- Comportamento quando clicar na aba
-    TabButton.MouseButton1Down:Connect(function()
-        
-        if CurrentTab ~= nil then
-            Tabs[CurrentTab].Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-            Tabs[CurrentTab].Button.TextColor3 = Color3.fromRGB(200, 200, 200)
-            Tabs[CurrentTab].Frame.Visible = false
-        end
-
-        CurrentTab = Name
-
-        TabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Content.Visible = true
-    end)
-
-    return Content
-end
-
-return Module
---[[
-    ROBLUE CLIENT - ELEMENTOS DAS TABS (PARTE 3)
-    Sistema de Botões, Parágrafos e Separadores.
-]]--
-
-local Elements = {}
-
--- Criar um botão dentro de uma Tab
-function Elements:AddButton(TabFrame, Name, Callback)
-
-    local Button = Instance.new("TextButton")
-    Button.Parent = TabFrame
-    Button.Size = UDim2.new(1, -10, 0, 40)
-    Button.Text = Name
-    Button.TextColor3 = Color3.fromRGB(230, 230, 230)
-    Button.Font = Enum.Font.GothamSemibold
-    Button.TextSize = 15
-    Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Button.BorderSizePixel = 0
-    Button.AutoButtonColor = false
-
-    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
-
-    Button.MouseEnter:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    end)
-
-    Button.MouseLeave:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    end)
-
-    Button.MouseButton1Down:Connect(function()
-        pcall(Callback)
-    end)
-
-    return Button
-end
-
--- Criar parágrafo (texto grande)
-function Elements:AddParagraph(TabFrame, Title, Content)
-
-    local Box = Instance.new("Frame")
-    Box.Size = UDim2.new(1, -10, 0, 70)
-    Box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Box.Parent = TabFrame
-    Box.BorderSizePixel = 0
-
-    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6)
-
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Parent = Box
-    TitleLabel.Size = UDim2.new(1, -20, 0, 20)
-    TitleLabel.Position = UDim2.new(0, 10, 0, 8)
-    TitleLabel.Text = Title
-    TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.TextSize = 16
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    local ContentLabel = Instance.new("TextLabel")
-    ContentLabel.Parent = Box
-    ContentLabel.Size = UDim2.new(1, -20, 0, 40)
-    ContentLabel.Position = UDim2.new(0, 10, 0, 28)
-    ContentLabel.Text = Content
-    ContentLabel.Font = Enum.Font.Gotham
-    ContentLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ContentLabel.TextSize = 13
-    ContentLabel.BackgroundTransparency = 1
-    ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
-    ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
-
-    return Box
-end
-
--- Criar um separador
-function Elements:AddDivider(TabFrame)
-    local Line = Instance.new("Frame")
-    Line.Size = UDim2.new(1, -10, 0, 1)
-    Line.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    Line.BorderSizePixel = 0
-    Line.Parent = TabFrame
-end
-
-return Elements
---[[
-    ROBLUE CLIENT — PARTE 4
-    Criação das Abas reais do Client.
-]]--
-
-local TabsModule = require(TabSystem) -- seu módulo da PARTE 2
-local Elements = require(ElementsSystem) -- módulo da PARTE 3
-
---===============================--
---        CRIAR AS ABAS          --
---===============================--
-
-local InfoTab = TabsModule:CreateTab("Info", "rbxassetid://6031763426")
-local TelaTab = TabsModule:CreateTab("Tela-Esticada", "rbxassetid://6031068426")
-local VisualTab = TabsModule:CreateTab("Visual", "rbxassetid://4483345998")
-local SistemaTab = TabsModule:CreateTab("Sistema", "rbxassetid://6034509993")
-
---===============================--
---             INFO              --
---===============================--
-
-Elements:AddParagraph(InfoTab,
-    "ROBLUE CLIENT",
-    "Hub universal atualizado para PC + Mobile com sistema visual moderno."
-)
-
-Elements:AddButton(InfoTab,
-    "Canal no YouTube",
-    function()
-        setclipboard("https://youtube.com/@italoedits")
-    end
-)
-
-Elements:AddButton(InfoTab,
-    "Servidor Discord",
-    function()
-        setclipboard("https://discord.com/invite/aeqYJdfWP6")
-    end
-)
-
-Elements:AddDivider(InfoTab)
-
---===============================--
---        TELA-ESTICADA          --
---===============================--
-
-Elements:AddParagraph(TelaTab,
-    "Tela Esticada",
-    "Ajuste a resolução horizontal para obter visão estendida."
-)
-
-Elements:AddButton(TelaTab, "Resolução Padrão", function()
-    -- será implementado na PARTE 5
-end)
-
-local resolucoes = {
-    ["Resolução 0.80"] = 0.80,
-    ["Resolução 0.70"] = 0.70,
-    ["Resolução 0.65"] = 0.65,
-    ["Resolução 0.55"] = 0.55,
-    ["Resolução 0.45"] = 0.45,
-    ["Resolução 0.40"] = 0.40
-}
-
-for nome, valor in pairs(resolucoes) do
-    Elements:AddButton(TelaTab, nome, function()
-        -- implementação na PARTE 5
-    end)
-end
-
---===============================--
---            VISUAL             --
---===============================--
-
-Elements:AddParagraph(VisualTab,
-    "Visual",
-    "Modificações visuais do jogo (ESP, RTX, etc.)"
-)
-
-Elements:AddButton(VisualTab, "Alternar ESP (Jogadores)", function()
-    -- será implementado na PARTE 5
-end)
-
-Elements:AddButton(VisualTab, "Ativar RTX Avançado", function()
-    -- será implementado na PARTE 5
-end)
-
---===============================--
---            SISTEMA            --
---===============================--
-
-Elements:AddParagraph(SistemaTab,
-    "Sistema",
-    "Ferramentas utilitárias (Anti-AFK, Rejoin, Hop, etc.)"
-)
-
-Elements:AddButton(SistemaTab, "Ativar Anti-AFK", function()
-    -- será implementado na PARTE 5
-end)
-
-Elements:AddButton(SistemaTab, "Server Hop (novo servidor)", function()
-    -- será implementado na PARTE 5
-end)
-
-Elements:AddButton(SistemaTab, "Reentrar no servidor", function()
-    -- será implementado na PARTE 5
-end)
-
-Elements:AddButton(SistemaTab, "Mover Botão de Pular", function()
-    -- será implementado na PARTE 5
-end)
---[[
-    ROBLUE CLIENT — PARTE 5
-    Funções reais do client (Tela, ESP, Anti-AFK etc)
-]]--
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-
---===============================--
---      SISTEMA DE NOTIFICAÇÃO   --
---===============================--
-
-local function Notify(Title, Text, Time)
-    game.StarterGui:SetCore("SendNotification", {
-        Title = Title,
-        Text = Text,
-        Duration = Time or 4
-    })
-end
-
---===============================--
---      FUNÇÃO: TELA ESTICADA    --
---===============================--
-
-local function aplicarResolucao(valor)
-    getgenv().Resolution = {[".gg/scripters"] = valor}
-    local Camera = workspace.CurrentCamera
-
-    if not getgenv().gg_scripters then
-        RunService.RenderStepped:Connect(function()
-            Camera.CFrame = Camera.CFrame * CFrame.new(
-                0, 0, 0,
-                1, 0, 0,
-                0, getgenv().Resolution[".gg/scripters"], 0,
-                0, 0, 1
-            )
-        end)
-    end
-
-    getgenv().gg_scripters = "Aori0001"
-
-    Notify("Tela Esticada", "Resolução aplicada: "..tostring(valor), 3)
-end
-
--- Resolução padrão
-resolucaoPadrao = function()
-    aplicarResolucao(1.0)
-end
-
--- Resoluções personalizadas
-for nome, valor in pairs(resolucoes) do
-    resolucoes[nome] = function()
-        aplicarResolucao(valor)
-    end
-end
-
---===============================--
---          FUNÇÃO: ESP          --
---===============================--
-
-local espAtivo = false
-
-local function toggleESP()
-    espAtivo = not espAtivo
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    if espAtivo then
-                        local box = Instance.new("BoxHandleAdornment")
-                        box.Adornee = part
-                        box.Size = part.Size
-                        box.Color3 = Color3.fromRGB(0, 170, 255)
-                        box.AlwaysOnTop = true
-                        box.ZIndex = 5
-                        box.Transparency = 0.2
-                        box.Name = "ESPBox"
-                        box.Parent = part
-                    else
-                        local old = part:FindFirstChild("ESPBox")
-                        if old then old:Destroy() end
-                    end
-                end
-            end
-        end
-    end
-
-    Notify("ESP", espAtivo and "Ativado" or "Desativado", 3)
-end
-
---===============================--
---         FUNÇÃO: RTX           --
---===============================--
-
-local function ativarRTX()
-    loadstring(game:HttpGet('https://pastebin.com/raw/kH90gD5d'))()
-    Notify("RTX", "RTX Avançado ativado!", 4)
-end
-
---===============================--
---       FUNÇÃO: ANTI-AFK        --
---===============================--
-
-local function ativarAntiAFK()
-    local vu = game:GetService("VirtualUser")
-
-    LocalPlayer.Idled:Connect(function()
-        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        task.wait(1)
-        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    end)
-
-    Notify("Anti-AFK", "Proteção ativada.", 4)
-end
-
---===============================--
---       FUNÇÃO: SERVER HOP      --
---===============================--
-
-local function serverHop()
-    local Servers = HttpService:JSONDecode(
-        game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
-    )
-
-    for _, data in ipairs(Servers.data) do
-        if data.playing < data.maxPlayers and data.id ~= game.JobId then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, data.id)
-            break
-        end
-    end
-end
-
---===============================--
---       FUNÇÃO: REENTRAR        --
---===============================--
-
-local function reentrar()
-    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-end
-
---===============================--
---   FUNÇÃO: MOVER BOTÃO DE PULO --
---===============================--
-
-local function moverBotao()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/onlyITALO/JumpCustonHubonlyITALO/refs/heads/main/CustonHubJumponlyITALO"))()
-    Notify("HUD", "Sistema de mover botão carregado!", 4)
-end
-
---===============================--
---    CONECTAR BOTÕES ÀS FUNÇÕES --
---===============================--
-
--- TELA ESTICADA
-Elements:AddButton(TelaTab, "Resolução Padrão", resolucaoPadrao)
-
-for nome, func in pairs(resolucoes) do
-    Elements:AddButton(TelaTab, nome, func)
-end
-
--- VISUAL
-Elements:AddButton(VisualTab, "Alternar ESP (Jogadores)", toggleESP)
-Elements:AddButton(VisualTab, "Ativar RTX Avançado", ativarRTX)
-
--- SISTEMA
-Elements:AddButton(SistemaTab, "Ativar Anti-AFK", ativarAntiAFK)
-Elements:AddButton(SistemaTab, "Server Hop (novo servidor)", serverHop)
-Elements:AddButton(SistemaTab, "Reentrar no servidor", reentrar)
-Elements:AddButton(SistemaTab, "Mover Botão de Pular", moverBotao)
---[[
-  ROBLUE CLIENT - UNIFICADO (FINAL)
-  - Visual idêntico ao ITALO CLIENT (screenshot)
-  - Engine compatível PC + Mobile
-  - Abas: Info, Tela-Esticada, Visual, Sistema
-  - Funções: Resolução esticada, ESP, RTX, Anti-AFK, ServerHop, Rejoin, Mover botão de pulo
-  - Autor: fusão solicitada pelo usuário
---]]
-
--- Services
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local StarterGui = game:GetService("StarterGui")
 
--- =========================
---  UI BASE (Janela/Topbar)
--- =========================
-local Orion = Instance.new("ScreenGui")
-Orion.Name = "ROBLUE_CLIENT"
-Orion.Parent = game:GetService("CoreGui")
+function ROBLUE_LIB:CreateWindow(config)
+    config = config or {}
+    local Title = config.Name or "ROBLUE CLIENT"
 
--- remove antigas instâncias com mesmo nome
-for _, ui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-    if ui.Name == "ROBLUE_CLIENT" and ui ~= Orion then
-        ui:Destroy()
-    end
-end
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "ROBLUE_LIB"
 
-local MainWindow = Instance.new("Frame")
-MainWindow.Name = "MainWindow"
-MainWindow.Size = UDim2.new(0, 610, 0, 340)
-MainWindow.Position = UDim2.new(0.5, -305, 0.5, -170)
-MainWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainWindow.BorderSizePixel = 0
-MainWindow.Parent = Orion
-MainWindow.Visible = false
-local mc = Instance.new("UICorner", MainWindow); mc.CornerRadius = UDim.new(0,10)
+    local win = Instance.new("Frame", gui)
+    win.Size = UDim2.new(0, 610, 0, 340)
+    win.Position = UDim2.new(0.5, -305, 0.5, -170)
+    win.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    Instance.new("UICorner", win).CornerRadius = UDim.new(0,10)
 
--- TopBar
-local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
-TopBar.Size = UDim2.new(1,0,0,45)
-TopBar.Position = UDim2.new(0,0,0,0)
-TopBar.BackgroundColor3 = Color3.fromRGB(15,15,15)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainWindow
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0,10)
+    local top = Instance.new("Frame", win)
+    top.Size = UDim2.new(1,0,0,45)
+    top.BackgroundColor3 = Color3.fromRGB(15,15,15)
+    Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
-local TopLine = Instance.new("Frame")
-TopLine.Size = UDim2.new(1,0,0,1)
-TopLine.Position = UDim2.new(0,0,1,-1)
-TopLine.BackgroundColor3 = Color3.fromRGB(60,60,60)
-TopLine.BorderSizePixel = 0
-TopLine.Parent = TopBar
-
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Text = "ROBLUE CLIENT"
-Title.Size = UDim2.new(1,-20,1,0)
-Title.Position = UDim2.new(0,20,0,0)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 20
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.BackgroundTransparency = 1
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
--- Close & Minimize
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseBtn"
-CloseButton.Size = UDim2.new(0,20,0,20)
-CloseButton.Position = UDim2.new(1,-35,0,13)
-CloseButton.Text = "✕"
-CloseButton.TextColor3 = Color3.fromRGB(255,80,80)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
-CloseButton.BackgroundTransparency = 1
-CloseButton.Parent = TopBar
-
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Name = "MinBtn"
-MinimizeButton.Size = UDim2.new(0,20,0,20)
-MinimizeButton.Position = UDim2.new(1,-65,0,13)
-MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(200,200,200)
-MinimizeButton.Font = Enum.Font.GothamBlack
-MinimizeButton.TextSize = 22
-MinimizeButton.BackgroundTransparency = 1
-MinimizeButton.Parent = TopBar
-
--- Sidebar & Content area
-local SideBar = Instance.new("Frame")
-SideBar.Name = "SideBar"
-SideBar.Size = UDim2.new(0,150,1,-45)
-SideBar.Position = UDim2.new(0,0,0,45)
-SideBar.BackgroundColor3 = Color3.fromRGB(15,15,15)
-SideBar.BorderSizePixel = 0
-SideBar.Parent = MainWindow
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0,10)
-
-local SideBarLine = Instance.new("Frame")
-SideBarLine.Size = UDim2.new(0,1,1,0)
-SideBarLine.Position = UDim2.new(1,-1,0,0)
-SideBarLine.BackgroundColor3 = Color3.fromRGB(50,50,50)
-SideBarLine.BorderSizePixel = 0
-SideBarLine.Parent = SideBar
-
-local TabContent = Instance.new("Frame")
-TabContent.Name = "TabContent"
-TabContent.Size = UDim2.new(1,-150,1,-45)
-TabContent.Position = UDim2.new(0,150,0,45)
-TabContent.BackgroundTransparency = 1
-TabContent.Parent = MainWindow
-
--- Animations
-local function AnimateOpen()
-    MainWindow.Visible = true
-    MainWindow.Size = UDim2.new(0,610,0,10)
-    TweenService:Create(MainWindow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0,610,0,340)}):Play()
-end
-local function AnimateClose()
-    TweenService:Create(MainWindow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Size = UDim2.new(0,610,0,0)}):Play()
-    task.wait(0.35)
-    MainWindow.Visible = false
-end
-
-CloseButton.MouseButton1Click:Connect(AnimateClose)
-MinimizeButton.MouseButton1Click:Connect(function()
-    if MainWindow.Size.Y.Offset > 50 then
-        TweenService:Create(MainWindow, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {Size = UDim2.new(0,610,0,45)}):Play()
-    else
-        TweenService:Create(MainWindow, TweenInfo.new(0.3, Enum.EasingStyle.Quint), {Size = UDim2.new(0,610,0,340)}):Play()
-    end
-end)
-
--- Make draggable topbar
-do
-    local Dragging, DragInput, MousePos, FramePos = false, nil, nil, nil
-    TopBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-            MousePos = input.Position
-            FramePos = MainWindow.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    Dragging = false
-                end
-            end)
-        end
-    end)
-    TopBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            DragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == DragInput and Dragging then
-            local Delta = input.Position - MousePos
-            MainWindow.Position = UDim2.new(FramePos.X.Scale, FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
-        end
-    end)
-end
-
--- show
-AnimateOpen()
-
--- ======================================
---  MODULE: Tabs system (inline, simple)
--- ======================================
-local Tabs = {}
-local CurrentTabName = nil
-local function CreateTab(name, iconImage)
-    -- compute y offset based on existing buttons
-    local yCount = 0
-    for _,c in pairs(SideBar:GetChildren()) do
-        if c:IsA("TextButton") then yCount = yCount + 1 end
-    end
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,-10,0,40)
-    btn.Position = UDim2.new(0,5,0, (yCount*45) + 5)
-    btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    btn.AutoButtonColor = false
-    btn.BorderSizePixel = 0
-    btn.Font = Enum.Font.GothamBold
-    btn.Text = ""
-    btn.TextColor3 = Color3.fromRGB(200,200,200)
-    btn.Parent = SideBar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-
-    -- icon
-    local ico = Instance.new("ImageLabel")
-    ico.Parent = btn
-    ico.Size = UDim2.new(0,22,0,22)
-    ico.Position = UDim2.new(0,10,0.5,-11)
-    ico.BackgroundTransparency = 1
-    ico.Image = iconImage or ""
-
-    local title = Instance.new("TextLabel")
-    title.Parent = btn
-    title.BackgroundTransparency = 1
-    title.Size = UDim2.new(1,-40,1,0)
-    title.Position = UDim2.new(0,40,0,0)
-    title.Text = name
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 15
-    title.TextColor3 = Color3.fromRGB(200,200,200)
-    title.TextXAlignment = Enum.TextXAlignment.Left
-
-    local content = Instance.new("ScrollingFrame")
-    content.Name = name .. "_Content"
-    content.Parent = TabContent
-    content.Size = UDim2.new(1,-20,1,-20)
-    content.Position = UDim2.new(0,10,0,10)
-    content.BackgroundTransparency = 1
-    content.ScrollBarThickness = 4
-    content.Visible = false
-    content.CanvasSize = UDim2.new(0,0,0,0)
-
-    local layout = Instance.new("UIListLayout", content)
-    layout.Padding = UDim.new(0,8)
-
-    Tabs[name] = {Button = btn, Frame = content}
-
-    btn.MouseButton1Click:Connect(function()
-        if CurrentTabName and Tabs[CurrentTabName] then
-            Tabs[CurrentTabName].Button.BackgroundColor3 = Color3.fromRGB(20,20,20)
-            Tabs[CurrentTabName].Button.TextColor3 = Color3.fromRGB(200,200,200)
-            Tabs[CurrentTabName].Frame.Visible = false
-        end
-        CurrentTabName = name
-        btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-        title.TextColor3 = Color3.fromRGB(255,255,255)
-        content.Visible = true
-    end)
-
-    -- auto-open first tab if none
-    if not CurrentTabName then
-        btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-        title.TextColor3 = Color3.fromRGB(255,255,255)
-        content.Visible = true
-        CurrentTabName = name
-    end
-
-    return content
-end
-
--- ======================================
---  MODULE: Elements (buttons, paragraphs)
--- ======================================
-local Elements = {}
-
-function Elements:AddButton(TabFrame, Name, Callback)
-    local Button = Instance.new("TextButton")
-    Button.Parent = TabFrame
-    Button.Size = UDim2.new(1,-10,0,33)
-    Button.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    Button.BorderSizePixel = 0
-    Button.Font = Enum.Font.GothamSemibold
-    Button.Text = ""
-    Button.AutoButtonColor = false
-    Instance.new("UICorner", Button).CornerRadius = UDim.new(0,6)
-
-    local label = Instance.new("TextLabel")
-    label.Parent = Button
+    local label = Instance.new("TextLabel", top)
+    label.Size = UDim2.new(1,-20,1,0)
+    label.Position = UDim2.new(0,20,0,0)
+    label.Text = Title
+    label.Font = Enum.Font.GothamBlack
+    label.TextSize = 20
+    label.TextColor3 = Color3.fromRGB(255,255,255)
     label.BackgroundTransparency = 1
-    label.Position = UDim2.new(0,12,0,0)
-    label.Size = UDim2.new(1,-24,1,0)
-    label.Font = Enum.Font.GothamBold
-    label.Text = Name
-    label.TextSize = 15
-    label.TextColor3 = Color3.fromRGB(230,230,230)
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    Button.MouseEnter:Connect(function() Button.BackgroundColor3 = Color3.fromRGB(40,40,40) end)
-    Button.MouseLeave:Connect(function() Button.BackgroundColor3 = Color3.fromRGB(30,30,30) end)
-    Button.MouseButton1Click:Connect(function() 
-        pcall(function() Callback() end)
-    end)
+    local sidebar = Instance.new("Frame", win)
+    sidebar.Size = UDim2.new(0,150,1,-45)
+    sidebar.Position = UDim2.new(0,0,0,45)
+    sidebar.BackgroundColor3 = Color3.fromRGB(15,15,15)
+    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,10)
 
-    return Button
-end
+    local content_area = Instance.new("Frame", win)
+    content_area.Size = UDim2.new(1,-150,1,-45)
+    content_area.Position = UDim2.new(0,150,0,45)
+    content_area.BackgroundTransparency = 1
 
-function Elements:AddParagraph(TabFrame, TitleText, ContentText)
-    local Box = Instance.new("Frame")
-    Box.Parent = TabFrame
-    Box.Size = UDim2.new(1,-10,0,70)
-    Box.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    Box.BorderSizePixel = 0
-    Instance.new("UICorner", Box).CornerRadius = UDim.new(0,6)
+    local Tabs = {}
+    local CurrentTab
 
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Parent = Box
-    TitleLabel.Size = UDim2.new(1,-20,0,20)
-    TitleLabel.Position = UDim2.new(0,10,0,8)
-    TitleLabel.Text = TitleText or ""
-    TitleLabel.Font = Enum.Font.GothamBold
-    TitleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    TitleLabel.TextSize = 16
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    function ROBLUE_LIB:CreateTab(name)
+        local y = 5 + (#sidebar:GetChildren() * 45)
+        local btn = Instance.new("TextButton", sidebar)
+        btn.Size = UDim2.new(1,-10,0,40)
+        btn.Position = UDim2.new(0,5,0,y)
+        btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = name
+        btn.TextColor3 = Color3.fromRGB(200,200,200)
 
-    local ContentLabel = Instance.new("TextLabel")
-    ContentLabel.Parent = Box
-    ContentLabel.Size = UDim2.new(1,-20,0,40)
-    ContentLabel.Position = UDim2.new(0,10,0,28)
-    ContentLabel.Text = ContentText or ""
-    ContentLabel.Font = Enum.Font.Gotham
-    ContentLabel.TextColor3 = Color3.fromRGB(200,200,200)
-    ContentLabel.TextSize = 13
-    ContentLabel.BackgroundTransparency = 1
-    ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
-    ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
-    ContentLabel.TextWrapped = true
+        local tab_frame = Instance.new("ScrollingFrame", content_area)
+        tab_frame.Size = UDim2.new(1,-20,1,-20)
+        tab_frame.Position = UDim2.new(0,10,0,10)
+        tab_frame.BackgroundTransparency = 1
+        tab_frame.ScrollBarThickness = 4
+        tab_frame.Visible = false
 
-    return Box
-end
+        Instance.new("UIListLayout", tab_frame).Padding = UDim.new(0,8)
 
-function Elements:AddDivider(TabFrame)
-    local Line = Instance.new("Frame")
-    Line.Parent = TabFrame
-    Line.Size = UDim2.new(1,-10,0,1)
-    Line.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    Line.BorderSizePixel = 0
-    return Line
-end
+        Tabs[name] = {button = btn, frame = tab_frame}
 
--- ======================================
---  Build the four tabs & fill base UI
--- ======================================
-local InfoTab = CreateTab("Info", "rbxassetid://6031763426")
-local TelaTab = CreateTab("Tela-Esticada", "rbxassetid://6031068426")
-local VisualTab = CreateTab("Visual", "rbxassetid://4483345998")
-local SistemaTab = CreateTab("Sistema", "rbxassetid://6034509993")
-
--- Info content
-Elements:AddParagraph(InfoTab, "ROBLUE CLIENT", "Hub universal atualizado para PC + Mobile com sistema visual moderno.")
-Elements:AddButton(InfoTab, "Canal no YouTube", function() setclipboard("https://youtube.com/@italoedits") StarterGui:SetCore("SendNotification",{Title="Copiado",Text="Link do canal copiado!",Duration=3}) end)
-Elements:AddButton(InfoTab, "Servidor Discord", function() setclipboard("https://discord.com/invite/aeqYJdfWP6") StarterGui:SetCore("SendNotification",{Title="Copiado",Text="Link do discord copiado!",Duration=3}) end)
-
-Elements:AddDivider(InfoTab)
-
--- ======================================
---  Functional logic: resolucoes, esp, etc
--- ======================================
--- Resolucoes mapping (numeric)
-local resolucoes_numeric = {
-    ["Resolução Padrão"] = 1.0,
-    ["Resolução 0.80"] = 0.80,
-    ["Resolução 0.70"] = 0.70,
-    ["Resolução 0.65"] = 0.65,
-    ["Resolução 0.55"] = 0.55,
-    ["Resolução 0.45"] = 0.45,
-    ["Resolução 0.40"] = 0.40
-}
-
--- Notify util
-local function Notify(title, text, time)
-    StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = time or 4})
-end
-
--- Aplicar resolucao (tenta reproduzir comportamento da lib antiga)
-local function aplicarResolucao(valor)
-    -- cria tabela global similar à antiga
-    getgenv().Resolution = {[".gg/scripters"] = valor}
-    local Camera = workspace.CurrentCamera
-
-    if not getgenv().gg_scripters then
-        -- conecta ao RenderStepped uma vez
-        RunService.RenderStepped:Connect(function()
-            -- multiplicação de CFrame com matriz (igual ao original)
-            -- OBS: valor de rotação via CFrame.new com parâmetros da forma original
-            Camera.CFrame = Camera.CFrame * CFrame.new(0,0,0, 1,0,0, 0, getgenv().Resolution[".gg/scripters"],0, 0,0,1)
+        btn.MouseButton1Click:Connect(function()
+            if CurrentTab then
+                Tabs[CurrentTab].button.BackgroundColor3 = Color3.fromRGB(20,20,20)
+                Tabs[CurrentTab].frame.Visible = false
+            end
+            CurrentTab = name
+            btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+            tab_frame.Visible = true
         end)
-    end
 
-    getgenv().gg_scripters = "Aori0001"
-    Notify("Tela Esticada", "Resolução aplicada: "..tostring(valor), 3)
-end
-
--- Resolução padrão func
-local function resolucaoPadrao()
-    aplicarResolucao(1.0)
-end
-
--- ESP
-local espAtivo = false
-local function toggleESP()
-    espAtivo = not espAtivo
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    if espAtivo then
-                        if not part:FindFirstChild("ESPBox") then
-                            local box = Instance.new("BoxHandleAdornment")
-                            box.Adornee = part
-                            box.Size = part.Size
-                            box.Color3 = Color3.fromRGB(0,170,255)
-                            box.AlwaysOnTop = true
-                            box.ZIndex = 5
-                            box.Transparency = 0.2
-                            box.Name = "ESPBox"
-                            box.Parent = part
-                        end
-                    else
-                        local old = part:FindFirstChild("ESPBox")
-                        if old then old:Destroy() end
-                    end
-                end
-            end
+        if not CurrentTab then
+            CurrentTab = name
+            btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+            tab_frame.Visible = true
         end
-    end
-    Notify("ESP", espAtivo and "Ativado" or "Desativado", 3)
-end
 
--- RTX ativar
-local function ativarRTX()
-    -- carregamento externo (mesmo link da lib antiga)
-    pcall(function()
-        loadstring(game:HttpGet('https://pastebin.com/raw/kH90gD5d'))()
-    end)
-    Notify("RTX", "RTX Avançado ativado!", 4)
-end
+        local Elements = {}
 
--- Anti-AFK
-local function ativarAntiAFK()
-    local vu = game:GetService("VirtualUser")
-    LocalPlayer.Idled:Connect(function()
-        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        task.wait(1)
-        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    end)
-    Notify("Anti-AFK", "Proteção ativada.", 4)
-end
-
--- Server Hop
-local function serverHop()
-    pcall(function()
-        local Servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-        for _, data in ipairs(Servers.data) do
-            if data.playing < data.maxPlayers and data.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, data.id)
-                break
-            end
+        function Elements:AddButton(text, callback)
+            local b = Instance.new("TextButton", tab_frame)
+            b.Size = UDim2.new(1,-10,0,35)
+            b.Text = text
+            b.Font = Enum.Font.GothamSemibold
+            b.TextColor3 = Color3.fromRGB(230,230,230)
+            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+            b.MouseButton1Click:Connect(function()
+                pcall(callback)
+            end)
         end
-    end)
-end
 
--- Rejoin
-local function reentrar()
-    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-end
+        function Elements:AddParagraph(t, c)
+            local box = Instance.new("Frame", tab_frame)
+            box.Size = UDim2.new(1,-10,0,70)
+            box.BackgroundColor3 = Color3.fromRGB(25,25,25)
+            Instance.new("UICorner", box).CornerRadius = UDim.new(0,6)
 
--- Mover Botão de Pular (carrega script externo da antiga)
-local function moverBotao()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/onlyITALO/JumpCustonHubonlyITALO/refs/heads/main/CustonHubJumponlyITALO"))()
-    end)
-    Notify("HUD", "Sistema de mover botão carregado!", 4)
-end
+            local tl = Instance.new("TextLabel", box)
+            tl.Text = t
+            tl.Font = Enum.Font.GothamBold
+            tl.TextColor3 = Color3.fromRGB(255,255,255)
+            tl.TextSize = 16
+            tl.Position = UDim2.new(0,10,0,5)
+            tl.Size = UDim2.new(1,-20,0,20)
+            tl.BackgroundTransparency = 1
 
--- ======================================
---  Add buttons to TelaTab, VisualTab, SistemaTab
--- ======================================
--- Tela-Esticada
-Elements:AddParagraph(TelaTab, "Tela Esticada", "Ajuste a resolução horizontal para obter visão estendida.")
-Elements:AddButton(TelaTab, "Resolução Padrão", function() resolucaoPadrao() end)
-for nome, valor in pairs(resolucoes_numeric) do
-    if nome ~= "Resolução Padrão" then
-        Elements:AddButton(TelaTab, nome, function() aplicarResolucao(valor) end)
+            local cl = Instance.new("TextLabel", box)
+            cl.Text = c
+            cl.Font = Enum.Font.Gotham
+            cl.TextColor3 = Color3.fromRGB(200,200,200)
+            cl.TextSize = 13
+            cl.Position = UDim2.new(0,10,0,28)
+            cl.Size = UDim2.new(1,-20,0,40)
+            cl.BackgroundTransparency = 1
+            cl.TextWrapped = true
+        end
+
+        return Elements
     end
+
+    return ROBLUE_LIB
 end
 
--- Visual
-Elements:AddParagraph(VisualTab, "Visual", "Modificações visuais do jogo (ESP, RTX, etc.)")
-Elements:AddButton(VisualTab, "Alternar ESP (Jogadores)", toggleESP)
-Elements:AddButton(VisualTab, "Ativar RTX Avançado", ativarRTX)
-
--- Sistema
-Elements:AddParagraph(SistemaTab, "Sistema", "Ferramentas utilitárias (Anti-AFK, Rejoin, Hop, etc.)")
-Elements:AddButton(SistemaTab, "Ativar Anti-AFK", ativarAntiAFK)
-Elements:AddButton(SistemaTab, "Server Hop (novo servidor)", serverHop)
-Elements:AddButton(SistemaTab, "Reentrar no servidor", reentrar)
-Elements:AddButton(SistemaTab, "Mover Botão de Pular", moverBotao)
-
--- Final message
-Notify("ROBLUE CLIENT", "Carregado com sucesso! (PC + Mobile)", 4)
-
--- Return table (se quiser requirear como module)
-return {
-    Window = MainWindow,
-    Tabs = Tabs,
-    Elements = Elements
-}
+return ROBLUE_LIB
