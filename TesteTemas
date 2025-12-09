@@ -470,8 +470,7 @@ CreateElement(
             Create(
             "ScrollingFrame",
             {
-                BackgroundTransparency = 0.20,
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                BackgroundTransparency = 1,
                 MidImage = "rbxassetid://7445543667",
                 BottomImage = "rbxassetid://7445543667",
                 TopImage = "rbxassetid://7445543667",
@@ -976,40 +975,27 @@ function OrionLib:MakeWindow(WindowConfig)
         "Stroke"
     )
 
-    local MainWindow = AddThemeObject(
-    SetChildren(
-        SetProps(
-            MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
+    local MainWindow =
+        AddThemeObject(
+        SetChildren(
+            SetProps(
+                MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10),
+                {
+                    Parent = Orion,
+                    Position = UDim2.new(0.5, -307, 0.5, -172),
+                    Size = UDim2.new(0, 615, 0, 344),
+                    ClipsDescendants = true
+                }
+            ),
             {
-                Name = "Frame1",
-                Parent = Orion,
-                Position = UDim2.new(0.5, -307, 0.5, -172),
-                Size = UDim2.new(0, 615, 0, 344),
-
-                -- TRANSPARÊNCIA CORRETA (igual ao ITALO)
-                BackgroundTransparency = 0.20,
-
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                ClipsDescendants = true,
-                Active = true,
-                Draggable = true
-            }
-        ),
-
-            {
-    SetChildren(
-        SetProps(
-            MakeElement("TFrame"),
-            {
-                Size = UDim2.new(1, 0, 0, 50),
-                Name = "TopBar",
-
-                -- TEMA ITALO (preto + leve transparência)
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                BackgroundTransparency = 0.20
-            }
-        ),
-
+                SetChildren(
+                    SetProps(
+                        MakeElement("TFrame"),
+                        {
+                            Size = UDim2.new(1, 0, 0, 50),
+                            Name = "TopBar"
+                        }
+                    ),
                     {
                         WindowName,
                         WindowTopBarLine,
